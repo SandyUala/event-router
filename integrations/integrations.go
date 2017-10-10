@@ -71,4 +71,5 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 		return errors.Wrap(err, "Error updating integrations")
 	}
 	integrationsMap.Put(appId, ints)
+	return nil
 }

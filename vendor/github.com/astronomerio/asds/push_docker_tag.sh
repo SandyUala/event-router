@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ]; then
+    echo "Please supply docker tag"
+    exit
+fi
+
+TAG=$1
+
+# Tag should start with v!
+if [[ "${TAG:0:1}" != "v" ]]; then
+    TAG="v$TAG"
+fi
+
+./make_docker_tag.sh $TAG
+
+docker push astronomerio/asds:$TAG
