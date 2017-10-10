@@ -6,8 +6,9 @@ import (
 	"syscall"
 
 	"github.com/astronomerio/event-router/kafka"
-	"github.com/astronomerio/event-router/pkg/prom"
 	cluster "github.com/bsm/sarama-cluster"
+	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,43 +45,54 @@ func NewConsumer(opts *ConsumerOptions) (*Consumer, error) {
 func (c *Consumer) Run() {
 	logger := log.WithField("function", "Run")
 	logger.Info("Starting Kafka Consumer")
-	consumer, err := cluster.NewConsumer(c.options.BootstrapServers, c.options.GroupID, c.options.Topics, c.config)
-	if err != nil {
-		logger.Error(err)
-		return
-	}
-	c.consumer = consumer
+
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	go func() {
-		for ntf := range consumer.Notifications() {
-			log.Info("Notification: %+v\n", ntf)
-		}
-	}()
+	consumer, err := confluent.NewConsumer(&confluent.ConfigMap{
+		"bootstrap.servers":               c.options.BootstrapServers,
+		"group.id":                        c.options.GroupID,
+		"session.timeout.ms":              6000,
+		"go.events.channel.enable":        true,
+		"go.application.rebalance.enable": true,
+		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"}})
 
-	go func() {
-		for err := range consumer.Errors() {
-			logger.Errorf("Error in kafka consumer: %+v\n", err)
-		}
-	}()
+	if err != nil {
+		logger.Panic(err)
+		return
+	}
+
+	err = consumer.SubscribeTopics(c.options.Topics, nil)
 
 	run := true
 	for run == true {
 		select {
 		case sig := <-sigchan:
-			log.Info("Caught signal %v: terminating\n", sig)
+			logger.Infof("Consumer caught signal %v: terminating\n", sig)
 			run = false
-		case msg := <-consumer.Messages():
-			go func() {
-				c.messageHandler.HandleMessage(msg.Value, msg.Key)
-				consumer.MarkOffset(msg, "")
-				prom.MessagesConsumed.Inc()
-			}()
+
+		case ev := <-consumer.Events():
+			switch e := ev.(type) {
+			case confluent.AssignedPartitions:
+				logger.Infof("Assigning Partition %v\n", e)
+				consumer.Assign(e.Partitions)
+			case confluent.RevokedPartitions:
+				logger.Infof("Revoking Partition %v\n", e)
+				consumer.Unassign()
+			case *confluent.Message:
+				c.messageHandler.HandleMessage(e.Value, e.Key)
+
+				// TODO:  Offset
+			case confluent.PartitionEOF:
+				logger.Infof("Reached %v\n", e)
+			case confluent.Error:
+				logger.Error(errors.Wrap(err, "Error received from kafka"))
+				run = false
+			}
 		}
 	}
 
-	c.Close()
+	consumer.Close()
 }
 
 func (c *Consumer) Close() {

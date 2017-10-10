@@ -2,6 +2,9 @@ package clickstream
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"encoding/json"
 
@@ -69,6 +72,19 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 
 func (c *Producer) handleEvents() {
 	logger := log.WithField("function", "handleEvents")
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for true {
+			select {
+			case sig := <-sigchan:
+				logger.Infof("Producer caught signal %v: terminating\n", sig)
+				c.Close()
+			}
+		}
+	}()
+
 	for e := range c.producer.Events() {
 		switch ev := e.(type) {
 		case *kafka.Message:
@@ -86,5 +102,6 @@ func (c *Producer) handleEvents() {
 
 func (c *Producer) Close() {
 	log.WithField("function", "close").Info("Closing messageHandler")
+	c.producer.Flush(1000)
 	c.producer.Close()
 }

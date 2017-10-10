@@ -18,8 +18,8 @@ var (
 */
 
 type Map struct {
-	integrations     map[string][]string
-	integrationsLock sync.RWMutex
+	integrations map[string][]string
+	sync.RWMutex
 }
 
 func NewMap() *Map {
@@ -27,14 +27,14 @@ func NewMap() *Map {
 }
 
 func (m *Map) Get(key string) []string {
-	m.integrationsLock.RLock()
-	defer m.integrationsLock.RUnlock()
+	m.RLock()
+	defer m.RUnlock()
 	return m.integrations[key]
 }
 
 func (m *Map) Put(key string, value []string) {
-	m.integrationsLock.Lock()
-	defer m.integrationsLock.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	m.integrations[key] = value
 }
 
