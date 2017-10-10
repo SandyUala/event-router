@@ -1,8 +1,6 @@
 package kafka
 
-import "github.com/Shopify/sarama"
-
 type MessageHandler interface {
-	HandleMessage(message *sarama.ConsumerMessage)
+	HandleMessage(message []byte, key []byte)
 	Close()
 }
