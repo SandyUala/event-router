@@ -5,8 +5,13 @@ GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
+all: build
+
 build:
 	go build -o event-router main.go
+
+static:
+	go build -tags static -o event-router main.go
 
 run:
 	go run cmd/main.go

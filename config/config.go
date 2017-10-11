@@ -17,7 +17,6 @@ const (
 	DebugEnvLabel = "DEBUG"
 
 	BootstrapServersEnvLabel = "BOOTSTRAP_SERVERS"
-	ApplicationIDEnvLabel    = "APPLICATION_ID"
 	ServePortEnvLabel        = "SERVE_PORT"
 	GroupIDEnvLabel          = "GROUP_ID"
 	TopicEnvLabel            = "TOPIC"
@@ -33,8 +32,9 @@ var (
 
 	requiredEnvs = []string{
 		BootstrapServersEnvLabel,
-		ApplicationIDEnvLabel,
 		HoustonAPIURLEnvLabel,
+		TopicEnvLabel,
+		GroupIDEnvLabel,
 	}
 )
 

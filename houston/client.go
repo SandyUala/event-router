@@ -14,6 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type HoustonClient interface {
+	GetOrganizationIntegrations(appId string) (map[string]string, error)
+}
+
 // Client the HTTPClient used to communicate with the HoustonAPI
 type Client struct {
 	HTTPClient *pkg.HTTPClient
@@ -44,6 +48,7 @@ type QueryOrganizationResponse struct {
 					ID      string `json:"id"`
 					Code    string `json:"code"`
 					Enabled bool   `json:"enabled"`
+					Name    string `json:"name"`
 				} `json:"clickstream"`
 			} `json:"sources"`
 		} `json:"organization"`
@@ -79,6 +84,7 @@ var (
 		  clickstream {
 			id
 			code
+			name
 			enabled
 		  }
 		}
@@ -105,7 +111,7 @@ var (
 	authToken string
 )
 
-func (c *Client) GetOrganizationIntegrations(appId string) ([]string, error) {
+func (c *Client) GetOrganizationIntegrations(appId string) (map[string]string, error) {
 	logger := log.WithField("function", "GetOrganizationIntegrations")
 	logger.WithField("appId", appId).Debug("Entered GetOrganizationIntegrations")
 
@@ -122,17 +128,15 @@ func (c *Client) GetOrganizationIntegrations(appId string) ([]string, error) {
 	if err = json.Unmarshal(houstonResponse.Body, queryResponse); err != nil {
 		return nil, errors.Wrap(err, "Error decoding get organization integrations response")
 	}
-	integrationsMap := make(map[string]bool)
-	integrations := make([]string, 0)
+	integrationsMap := make(map[string]string)
 	for _, src := range queryResponse.Data.Organization.Sources {
 		for _, clickStream := range src.Clickstream {
-			if clickStream.Enabled && !integrationsMap[clickStream.Code] {
-				integrationsMap[clickStream.Code] = clickStream.Enabled
-				integrations = append(integrations, clickStream.Code)
+			if clickStream.Enabled && len(integrationsMap[clickStream.Name]) == 0 {
+				integrationsMap[clickStream.Name] = clickStream.Code
 			}
 		}
 	}
-	return integrations, nil
+	return integrationsMap, nil
 }
 
 func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, error) {

@@ -2,6 +2,9 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/astronomerio/event-router/api/routes"
 	"github.com/gin-gonic/gin"
@@ -45,5 +48,32 @@ func (c *Client) Serve(port string) error {
 	router.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
-	return router.Run(port)
+
+	if string(port[0]) != ":" {
+		port = ":" + port
+	}
+	srv := &http.Server{
+		Addr:    port,
+		Handler: router,
+	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			logger.Error(err)
+		}
+	}()
+
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	run := true
+	for run == true {
+		select {
+		case sig := <-sigchan:
+			logger.Infof("Webserver caught signal %v: terminating", sig)
+			srv.Close()
+			run = false
+		}
+	}
+	logger.Info("Shutdown Webserver")
+	return nil
 }
