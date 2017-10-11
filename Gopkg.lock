@@ -8,12 +8,6 @@
   version = "v1.13.0"
 
 [[projects]]
-  name = "github.com/astronomerio/asds"
-  packages = ["config","pkg"]
-  revision = "1ab7229e6daf944c40aaf14a216a358cdb4e64f9"
-  version = "v0.1.13"
-
-[[projects]]
   name = "github.com/astronomerio/viper"
   packages = ["."]
   revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
@@ -224,12 +218,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/spf13/viper"
-  packages = ["."]
-  revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
-  version = "v1.0.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/ugorji/go"
   packages = ["codec"]
@@ -268,6 +256,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "87db7af574c63db88fcbfc045e98c065a02e68093c749eb5e177698ba7abbec8"
+  inputs-digest = "7964dff4b50caa8b89144368c4b81c2c9cf51da4efa51878923a785915ffe7e9"
   solver-name = "gps-cdcl"
   solver-version = 1
