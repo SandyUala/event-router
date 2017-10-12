@@ -10,6 +10,7 @@ import (
 	"github.com/astronomerio/event-router/integrations"
 	"github.com/astronomerio/event-router/kafka/clickstream"
 	"github.com/astronomerio/event-router/pkg"
+	"github.com/astronomerio/event-router/sse"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,10 @@ func start(cmd *cobra.Command, args []string) {
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topics := strings.Split(config.GetString(config.TopicEnvLabel), ",")
+	sseURL := config.GetString(config.SEEURLEnvLabel)
+
+	// SSE Client
+	sseClient := sse.NewSSEClient(sseURL)
 
 	// HTTP Client
 	httpClient := pkg.NewHTTPClient()
@@ -47,6 +52,9 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Integration Client
 	integrationClient := integrations.NewClient(houstonClient)
+
+	// Register our integrations event listener with the SSE Client
+	sseClient.Subscribe("appChanges", integrationClient.EventListener)
 
 	// Create our clickstreamProducer
 	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{

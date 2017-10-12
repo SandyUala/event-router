@@ -30,6 +30,12 @@ func mock(cmd *cobra.Command, args []string) {
 	logger := log.WithField("function", "start")
 	logger.Info("Starting mock event-router")
 
+	logger.Warn("================================================================")
+	logger.Warn("WARNING!  THIS IS A MOCK CLIENT.")
+	logger.Warn("It will connect to kafka and process data on the topics, " +
+		"but it will not connect to Houston or receive app change events!")
+	logger.Warn("================================================================")
+
 	// Create our simple web server
 	apiClient := api.NewClient()
 	apiClient.AppendRouteHandler(v1.NewPromHandler())

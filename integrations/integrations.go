@@ -57,7 +57,7 @@ func (c *Client) GetIntegrations(appId string) map[string]string {
 }
 
 func (c *Client) getIntegrationsFromHouston(appId string) map[string]string {
-	ints, err := c.houstonClient.GetOrganizationIntegrations(appId)
+	ints, err := c.houstonClient.GetIntegrations(appId)
 	if err != nil {
 		log.Error(err)
 		return nil
@@ -66,10 +66,18 @@ func (c *Client) getIntegrationsFromHouston(appId string) map[string]string {
 }
 
 func (c *Client) UpdateIntegrationsForApp(appId string) error {
-	ints, err := c.houstonClient.GetOrganizationIntegrations(appId)
+	ints, err := c.houstonClient.GetIntegrations(appId)
 	if err != nil {
 		return errors.Wrap(err, "Error updating integrations")
 	}
 	integrationsMap.Put(appId, ints)
 	return nil
+}
+
+func (c *Client) EventListener(eventRaw []byte, dataRaw []byte) {
+	event := string(eventRaw)
+	data := string(dataRaw)
+	if event == "appChange" {
+		c.UpdateIntegrationsForApp(data)
+	}
 }

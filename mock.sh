@@ -7,5 +7,6 @@ export ER_DEBUG=false
 export ER_SERVE_PORT=9091
 export ER_TOPIC=main
 export ER_GROUP_ID=moc
+export ER_SSE_URL=localhost
 
 go run main.go mock "S3 Event Logs:s3-event-logs"

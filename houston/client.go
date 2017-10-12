@@ -15,7 +15,7 @@ import (
 )
 
 type HoustonClient interface {
-	GetOrganizationIntegrations(appId string) (map[string]string, error)
+	GetIntegrations(appId string) (map[string]string, error)
 }
 
 // Client the HTTPClient used to communicate with the HoustonAPI
@@ -40,21 +40,6 @@ type GraphQLQuery struct {
 	Query string `json:"query"`
 }
 
-type QueryOrganizationResponse struct {
-	Data struct {
-		Organization struct {
-			Sources []struct {
-				Clickstream []struct {
-					ID      string `json:"id"`
-					Code    string `json:"code"`
-					Enabled bool   `json:"enabled"`
-					Name    string `json:"name"`
-				} `json:"clickstream"`
-			} `json:"sources"`
-		} `json:"organization"`
-	} `json:"data"`
-}
-
 type VerifyTokenResponse struct {
 	Data struct {
 		VerifyToken struct {
@@ -62,6 +47,7 @@ type VerifyTokenResponse struct {
 			Message string `json:"message"`
 		} `json:"verifyToken"`
 	} `json:"data"`
+	Errors []Errors `json:"errors"`
 }
 
 type CreateTokenResponse struct {
@@ -72,21 +58,41 @@ type CreateTokenResponse struct {
 			Message string `json:"message"`
 		} `json:"createToken"`
 	} `json:"data"`
+	Errors []Errors `json:"errors"`
+}
+
+type QuerySourcesResponse struct {
+	Data struct {
+		Sources []struct {
+			Clickstream []struct {
+				Name    string `json:"name"`
+				Topic   string `json:"topic"`
+				Enabled bool   `json:"enabled"`
+			} `json:"clickstream"`
+		} `json:"sources"`
+	} `json:"data"`
+	Errors []Errors `json:"errors"`
+}
+
+type Errors struct {
+	Message   string `json:"message"`
+	Locations []struct {
+		Line   int `json:"line"`
+		Column int `json:"column"`
+	} `json:"locations"`
+	Path []string `json:"path"`
 }
 
 var (
 	log = logrus.WithField("package", "houston")
 
-	queryOrganization = `
-	query organizations {
-	  organization(orgId:"%s"){
-		sources {
-		  clickstream {
-			id
-			code
+	querySources = `
+	query sources {
+	  sources(id:"%s") {
+		clickstream{
 			name
-			enabled
-		  }
+		  topic: code
+		  enabled
 		}
 	  }
 	}`
@@ -111,28 +117,29 @@ var (
 	authToken string
 )
 
-func (c *Client) GetOrganizationIntegrations(appId string) (map[string]string, error) {
-	logger := log.WithField("function", "GetOrganizationIntegrations")
-	logger.WithField("appId", appId).Debug("Entered GetOrganizationIntegrations")
+// GetIntegrations will get the enabled integrations from Houston
+func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
+	logger := log.WithField("function", "GetIntegrations")
+	logger.WithField("appId", appId).Debug("Entered GetIntegrations")
 
-	query := fmt.Sprintf(queryOrganization, appId)
+	query := fmt.Sprintf(querySources, appId)
 	authKey, err := c.getAuthorizationKey()
 	if err != nil {
-		return nil, errors.Wrap(err, "Error getting organization integrations")
+		return nil, errors.Wrap(err, "Error getting source integrations")
 	}
 	houstonResponse, err := c.queryHouston(query, authKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "Error getting organization integrations")
+		return nil, errors.Wrap(err, "Error getting source integrations")
 	}
-	var queryResponse QueryOrganizationResponse
+	var queryResponse QuerySourcesResponse
 	if err = json.Unmarshal(houstonResponse.Body, queryResponse); err != nil {
-		return nil, errors.Wrap(err, "Error decoding get organization integrations response")
+		return nil, errors.Wrap(err, "Error decoding query sources response")
 	}
 	integrationsMap := make(map[string]string)
-	for _, src := range queryResponse.Data.Organization.Sources {
+	for _, src := range queryResponse.Data.Sources {
 		for _, clickStream := range src.Clickstream {
 			if clickStream.Enabled && len(integrationsMap[clickStream.Name]) == 0 {
-				integrationsMap[clickStream.Name] = clickStream.Code
+				integrationsMap[clickStream.Name] = clickStream.Topic
 			}
 		}
 	}
