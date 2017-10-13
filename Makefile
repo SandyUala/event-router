@@ -13,6 +13,9 @@ build:
 static:
 	go build -tags static -o event-router main.go
 
+install:
+	go install
+
 run:
 	go run cmd/main.go
 

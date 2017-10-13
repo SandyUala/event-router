@@ -19,6 +19,9 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(MessagesConsumed,
-		MessagesProduced)
+	prometheus.MustRegister(
+		MessagesConsumed,
+		MessagesProduced,
+		SSEClickstreamMessagesReceived,
+	)
 }
