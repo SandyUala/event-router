@@ -2,3 +2,4 @@
 
 prometheus/data
 event-router
+pprof

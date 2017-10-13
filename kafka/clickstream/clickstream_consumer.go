@@ -58,10 +58,11 @@ func (c *Consumer) Run() {
 		"session.timeout.ms":              6000,
 		"go.events.channel.enable":        true,
 		"go.application.rebalance.enable": true,
+		"enable.auto.commit":              true,
 		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"}})
 
 	if err != nil {
-		logger.Panic(err)
+		logger.Error(err)
 		return
 	}
 
@@ -83,7 +84,7 @@ func (c *Consumer) Run() {
 				logger.Infof("Revoking Partition %v", e)
 				consumer.Unassign()
 			case *confluent.Message:
-				c.messageHandler.HandleMessage(e.Value, e.Key)
+				go c.messageHandler.HandleMessage(e.Value, e.Key)
 				go prom.MessagesConsumed.Inc()
 			case confluent.PartitionEOF:
 				logger.Infof("Reached %v", e)

@@ -11,6 +11,7 @@ import (
 	"github.com/astronomerio/event-router/houston"
 	"github.com/astronomerio/event-router/integrations"
 	"github.com/astronomerio/event-router/kafka/clickstream"
+	"github.com/astronomerio/event-router/sse"
 	"github.com/spf13/cobra"
 )
 
@@ -44,6 +45,8 @@ func mock(cmd *cobra.Command, args []string) {
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topics := strings.Split(config.GetString(config.TopicEnvLabel), ",")
+	sseURL := config.GetString(config.SSEURLEnvLabel)
+	sseAuth := config.GetString(config.SSEAuthEnvLabel)
 
 	// Parse the args
 	if len(args) == 0 {
@@ -61,8 +64,12 @@ func mock(cmd *cobra.Command, args []string) {
 	mockHoustonClient := &houston.MockClient{
 		Integrations: values,
 	}
-
 	integration := integrations.NewClient(mockHoustonClient)
+
+	// SSE Client
+	sseClient := sse.NewSSEClient(sseURL, sseAuth)
+	sseClient.Subscribe("clickstream", integration.EventListener)
+
 	// Create our clickstreamProducer
 	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{
 		BootstrapServers: bootstrapServers,

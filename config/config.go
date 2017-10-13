@@ -20,7 +20,8 @@ const (
 	ServePortEnvLabel        = "SERVE_PORT"
 	GroupIDEnvLabel          = "GROUP_ID"
 	TopicEnvLabel            = "TOPIC"
-	SEEURLEnvLabel           = "SSE_URL"
+	SSEURLEnvLabel           = "SSE_URL"
+	SSEAuthEnvLabel          = "SSE_AUTH"
 
 	HoustonAPIURLEnvLabel   = "HOUSTON_API_URL"
 	HoustonAPIKeyEnvLabel   = "HOUSTON_API_KEY"
@@ -36,7 +37,8 @@ var (
 		HoustonAPIURLEnvLabel,
 		TopicEnvLabel,
 		GroupIDEnvLabel,
-		SEEURLEnvLabel,
+		SSEURLEnvLabel,
+		SSEAuthEnvLabel,
 	}
 )
 

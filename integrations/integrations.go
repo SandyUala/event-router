@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/astronomerio/event-router/houston"
+	"github.com/astronomerio/event-router/pkg/prom"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -11,6 +12,8 @@ import (
 var (
 	log             = logrus.WithField("package", "integrations")
 	integrationsMap = NewMap()
+	syncMap         = make(map[string]*sync.RWMutex)
+	globalLock      sync.Mutex
 )
 
 /*
@@ -18,23 +21,28 @@ var (
 */
 
 type Map struct {
-	integrations map[string]map[string]string
-	sync.RWMutex
+	integrations map[string]*map[string]string
 }
 
 func NewMap() *Map {
-	return &Map{integrations: make(map[string]map[string]string)}
+	return &Map{integrations: make(map[string]*map[string]string)}
 }
 
-func (m *Map) Get(key string) map[string]string {
-	m.RLock()
-	defer m.RUnlock()
+func (m *Map) Get(key string) *map[string]string {
+	globalLock.Lock()
+	defer globalLock.Unlock()
+	lock, ok := syncMap[key]
+	if !ok {
+		lock = &sync.RWMutex{}
+		syncMap[key] = lock
+	}
+	lock.RLock()
+	defer lock.RUnlock()
 	return m.integrations[key]
+
 }
 
-func (m *Map) Put(key string, value map[string]string) {
-	m.Lock()
-	defer m.Unlock()
+func (m *Map) Put(key string, value *map[string]string) {
 	m.integrations[key] = value
 }
 
@@ -46,23 +54,26 @@ func NewClient(houstonClient houston.HoustonClient) *Client {
 	return &Client{houstonClient: houstonClient}
 }
 
-func (c *Client) GetIntegrations(appId string) map[string]string {
+func (c *Client) GetIntegrations(appId string) *map[string]string {
 	integrations := integrationsMap.Get(appId)
 	if integrations == nil {
+		syncMap[appId].Lock()
+		log.Debugf("Populating integrations for appId %s", appId)
 		if integrations = c.getIntegrationsFromHouston(appId); integrations != nil {
 			integrationsMap.Put(appId, integrations)
 		}
+		syncMap[appId].Unlock()
 	}
 	return integrations
 }
 
-func (c *Client) getIntegrationsFromHouston(appId string) map[string]string {
-	ints, err := c.houstonClient.GetIntegrations(appId)
+func (c *Client) getIntegrationsFromHouston(appId string) *map[string]string {
+	integrations, err := c.houstonClient.GetIntegrations(appId)
 	if err != nil {
 		log.Error(err)
 		return nil
 	}
-	return ints
+	return &integrations
 }
 
 func (c *Client) UpdateIntegrationsForApp(appId string) error {
@@ -70,14 +81,16 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 	if err != nil {
 		return errors.Wrap(err, "Error updating integrations")
 	}
-	integrationsMap.Put(appId, ints)
+	integrationsMap.Put(appId, &ints)
 	return nil
 }
 
 func (c *Client) EventListener(eventRaw []byte, dataRaw []byte) {
 	event := string(eventRaw)
 	data := string(dataRaw)
-	if event == "appChange" {
+	log.Infof("AppID %s integrations updated ")
+	if event == "clickstream" {
+		prom.SSEClickstreamMessagesReceived.Inc()
 		c.UpdateIntegrationsForApp(data)
 	}
 }

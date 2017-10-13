@@ -39,10 +39,11 @@ func start(cmd *cobra.Command, args []string) {
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topics := strings.Split(config.GetString(config.TopicEnvLabel), ",")
-	sseURL := config.GetString(config.SEEURLEnvLabel)
+	sseURL := config.GetString(config.SSEURLEnvLabel)
+	sseAuth := config.GetString(config.SSEAuthEnvLabel)
 
 	// SSE Client
-	sseClient := sse.NewSSEClient(sseURL)
+	sseClient := sse.NewSSEClient(sseURL, sseAuth)
 
 	// HTTP Client
 	httpClient := pkg.NewHTTPClient()

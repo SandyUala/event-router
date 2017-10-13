@@ -13,7 +13,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 type Producer struct {
@@ -49,7 +48,7 @@ func NewProducer(opts *ProducerOptions) (*Producer, error) {
 
 func (c *Producer) HandleMessage(message []byte, key []byte) {
 	logger := log.WithField("function", "HandleMessage")
-	logger.Debug("Entered HandleMessage")
+	//logger.Debug("Entered HandleMessage")
 	// Get the appId
 	dat := &Message{}
 	if err := json.Unmarshal(message, &dat); err != nil {
@@ -61,16 +60,16 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 		logger.Errorf("No integrations returned for appId %s", dat.AppId)
 		return
 	}
-	for name, integration := range ints {
+	for name, integration := range *ints {
 		// If the integration name is in the list of integrations from the message,
 		// and the message has it as false, don't send.  If there is no value, don't send
 		if ok, intEnabled := dat.Integrations[name]; ok && !intEnabled {
 			continue
 		}
-		logger.WithFields(logrus.Fields{
-			"appId":       dat.AppId,
-			"integration": integration,
-		}).Debug("Sending message to integration")
+		//logger.WithFields(logrus.Fields{
+		//	"appId":       dat.AppId,
+		//	"integration": integration,
+		//}).Debug("Sending message to integration")
 		c.producer.ProduceChannel() <- &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
 				Topic:     &integration,
@@ -79,9 +78,9 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 			Key:   []byte(key),
 			Value: message,
 		}
-		go prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": integration}).Inc()
+		//go prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": integration}).Inc()
 	}
-	logger.Debug("Exiting HandleMessage")
+	//logger.Debug("Exiting HandleMessage")
 }
 
 func (c *Producer) handleEvents() {
@@ -103,8 +102,16 @@ func (c *Producer) handleEvents() {
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
+				} else {
+					go func() {
+						dat := &Message{}
+						if err := json.Unmarshal(m.Value, &dat); err != nil {
+							logger.Error("Error unmarshaling message json: " + err.Error())
+							return
+						}
+						prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Inc()
+					}()
 				}
-				return
 
 			default:
 				fmt.Printf("Ignored event: %s\n", e)

@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/DeanThompson/ginpprof"
 	"github.com/astronomerio/event-router/api/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -48,6 +49,8 @@ func (c *Client) Serve(port string) error {
 	router.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
+
+	ginpprof.Wrap(router)
 
 	if string(port[0]) != ":" {
 		port = ":" + port

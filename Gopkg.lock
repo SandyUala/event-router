@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/DeanThompson/ginpprof"
+  packages = ["."]
+  revision = "8c0e31bfeaa87bd40412ee8a8ba383f5f700ff72"
+
+[[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
   revision = "bbdbe644099b7fdc8327d5cc69c030945188b2e9"
@@ -170,6 +176,12 @@
   revision = "e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2"
 
 [[projects]]
+  name = "github.com/r3labs/sse"
+  packages = ["."]
+  revision = "86fcf8fba06da940639f99f1ef748a0b9e5ea55c"
+  version = "1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
@@ -256,6 +268,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7964dff4b50caa8b89144368c4b81c2c9cf51da4efa51878923a785915ffe7e9"
+  inputs-digest = "ad4ff736052b6856388c5a1eee7799ac2a08d524d3483a770768a55effbc2c88"
   solver-name = "gps-cdcl"
   solver-version = 1
