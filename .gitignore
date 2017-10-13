@@ -1,5 +1,5 @@
 .idea
 
-prometheus/data
+prometheus
 event-router
 pprof
