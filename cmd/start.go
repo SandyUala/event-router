@@ -61,6 +61,8 @@ func start(cmd *cobra.Command, args []string) {
 	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{
 		BootstrapServers: bootstrapServers,
 		Integrations:     integrationClient,
+		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMSEvnLabel),
+		FlushTimeout:     config.GetInt(config.KafkaProducerFlushTimeoutMSEnvLabel),
 	})
 	if err != nil {
 		logger.Panic(err)

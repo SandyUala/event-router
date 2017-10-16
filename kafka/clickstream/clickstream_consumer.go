@@ -9,7 +9,6 @@ import (
 	"github.com/astronomerio/event-router/pkg/prom"
 	cluster "github.com/bsm/sarama-cluster"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -67,6 +66,10 @@ func (c *Consumer) Run() {
 	}
 
 	err = consumer.SubscribeTopics(c.options.Topics, nil)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
 
 	run := true
 	for run == true {
@@ -89,8 +92,7 @@ func (c *Consumer) Run() {
 			case confluent.PartitionEOF:
 				logger.Infof("Reached %v", e)
 			case confluent.Error:
-				logger.Error(errors.Wrap(err, "Error received from kafka"))
-				run = false
+				logger.Error(e.Error())
 			}
 		}
 	}

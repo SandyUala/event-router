@@ -74,6 +74,7 @@ func mock(cmd *cobra.Command, args []string) {
 	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{
 		BootstrapServers: bootstrapServers,
 		Integrations:     integration,
+		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMSEvnLabel),
 	})
 	if err != nil {
 		logger.Panic(err)

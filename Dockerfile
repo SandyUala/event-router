@@ -12,9 +12,9 @@ MAINTAINER Ken Herner <ken@astronomer.io>
 
 COPY --from=0 /go/src/github.com/astronomerio/event-router/event-router /usr/local/bin/event-router
 
-RUN apk --no-cache add openssl lz4 libsasl
+RUN apk --no-cache add openssl lz4 libsasl ca-certificates
 
 ENV GIN_MODE=release
-EXPOSE 8080
+EXPOSE 9091
 
 ENTRYPOINT ["event-router"]

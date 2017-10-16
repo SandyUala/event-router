@@ -16,12 +16,14 @@ const (
 
 	DebugEnvLabel = "DEBUG"
 
-	BootstrapServersEnvLabel = "BOOTSTRAP_SERVERS"
-	ServePortEnvLabel        = "SERVE_PORT"
-	GroupIDEnvLabel          = "GROUP_ID"
-	TopicEnvLabel            = "TOPIC"
-	SSEURLEnvLabel           = "SSE_URL"
-	SSEAuthEnvLabel          = "SSE_AUTH"
+	BootstrapServersEnvLabel              = "BOOTSTRAP_SERVERS"
+	ServePortEnvLabel                     = "SERVE_PORT"
+	GroupIDEnvLabel                       = "GROUP_ID"
+	TopicEnvLabel                         = "TOPIC"
+	SSEURLEnvLabel                        = "SSE_URL"
+	SSEAuthEnvLabel                       = "SSE_AUTH"
+	KafkaProducerFlushTimeoutMSEnvLabel   = "KAFKA_PRODUCER_FLUSH_TIMEOUT_MS"
+	KafkaProducerMessageTimeoutMSEvnLabel = "KAFKA_PRODUCER_MESSAGE_TIMEOUT_MS"
 
 	HoustonAPIURLEnvLabel   = "HOUSTON_API_URL"
 	HoustonAPIKeyEnvLabel   = "HOUSTON_API_KEY"
@@ -68,9 +70,15 @@ func GetBool(cfg string) bool {
 	return viper.GetBool(cfg)
 }
 
+func GetInt(cfg string) int {
+	return viper.GetInt(cfg)
+}
+
 func setDefaults() {
 	viper.SetDefault(DebugEnvLabel, false)
 	viper.SetDefault(ServePortEnvLabel, "8080")
+	viper.SetDefault(KafkaProducerFlushTimeoutMSEnvLabel, 1000)
+	viper.SetDefault(KafkaProducerMessageTimeoutMSEvnLabel, 5000)
 }
 
 func verifyRequiredEnvVars() error {

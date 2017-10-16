@@ -18,11 +18,14 @@ import (
 type Producer struct {
 	producer     *kafka.Producer
 	integrations *integrations.Client
+	opts         *ProducerOptions
 }
 
 type ProducerOptions struct {
 	BootstrapServers string
 	Integrations     *integrations.Client
+	MessageTimeout   int
+	FlushTimeout     int
 }
 
 type Message struct {
@@ -32,7 +35,8 @@ type Message struct {
 
 func NewProducer(opts *ProducerOptions) (*Producer, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": opts.BootstrapServers,
+		"bootstrap.servers":  opts.BootstrapServers,
+		"message.timeout.ms": opts.MessageTimeout,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating kafka messageHandler")
@@ -40,6 +44,7 @@ func NewProducer(opts *ProducerOptions) (*Producer, error) {
 	cs := &Producer{
 		producer:     p,
 		integrations: opts.Integrations,
+		opts:         opts,
 	}
 	// Handle messageHandler events in a goroutine
 	go cs.handleEvents()
@@ -48,7 +53,6 @@ func NewProducer(opts *ProducerOptions) (*Producer, error) {
 
 func (c *Producer) HandleMessage(message []byte, key []byte) {
 	logger := log.WithField("function", "HandleMessage")
-	//logger.Debug("Entered HandleMessage")
 	// Get the appId
 	dat := &Message{}
 	if err := json.Unmarshal(message, &dat); err != nil {
@@ -78,9 +82,7 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 			Key:   []byte(key),
 			Value: message,
 		}
-		//go prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": integration}).Inc()
 	}
-	//logger.Debug("Exiting HandleMessage")
 }
 
 func (c *Producer) handleEvents() {
@@ -88,7 +90,6 @@ func (c *Producer) handleEvents() {
 	logger.Debug("Entered handleEvents")
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
 	run := true
 	for run == true {
 		select {
@@ -102,6 +103,7 @@ func (c *Producer) handleEvents() {
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
+					prom.MessagesProducedFailuer.Inc()
 				} else {
 					go func() {
 						dat := &Message{}
@@ -112,6 +114,8 @@ func (c *Producer) handleEvents() {
 						prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Inc()
 					}()
 				}
+			case *kafka.Error:
+				logger.Error(e.Error())
 
 			default:
 				fmt.Printf("Ignored event: %s\n", e)
@@ -122,8 +126,12 @@ func (c *Producer) handleEvents() {
 }
 
 func (c *Producer) Close() {
-	log.WithField("function", "close").Info("Closing messageHandler")
-	c.producer.Flush(100)
+	logger := log.WithField("function", "Close")
+	logger.Info("Closing messageHandler")
+	messagesLeftToFlushed := c.producer.Flush(c.opts.FlushTimeout)
+	if messagesLeftToFlushed != 0 {
+		logger.Errorf("Failed to flush %d messages after %d ms", messagesLeftToFlushed, c.opts.FlushTimeout)
+	}
 	c.producer.Close()
-	log.Info("Producer Closed")
+	logger.Info("Producer Closed")
 }
