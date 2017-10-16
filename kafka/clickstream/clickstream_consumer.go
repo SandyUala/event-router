@@ -7,7 +7,6 @@ import (
 
 	"github.com/astronomerio/event-router/kafka"
 	"github.com/astronomerio/event-router/pkg/prom"
-	cluster "github.com/bsm/sarama-cluster"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/sirupsen/logrus"
 )
@@ -29,10 +28,6 @@ type ConsumerOptions struct {
 }
 
 func NewConsumer(opts *ConsumerOptions) (*Consumer, error) {
-	config := cluster.NewConfig()
-	config.Consumer.Return.Errors = true
-	config.Group.Return.Notifications = true
-
 	return &Consumer{
 		options:        opts,
 		messageHandler: opts.MessageHandler,
