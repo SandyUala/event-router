@@ -98,6 +98,7 @@ func (c *Client) initMessagesTable() error {
 	runID int,
 	taskID text,
 	messageID int,
+	PRIMARY KEY (runID, messageID, taskID))`, c.configs.Keyspace, c.configs.MessageTableName)
 	if err := c.session.Query(createTableQuery).Exec(); err != nil {
 		return errors.Wrap(err, "error creating messages table")
 	}
