@@ -34,6 +34,8 @@ const (
 var (
 	debug = false
 
+	initialized = false
+
 	requiredEnvs = []string{
 		BootstrapServersEnvLabel,
 		HoustonAPIURLEnvLabel,
@@ -44,7 +46,7 @@ var (
 	}
 )
 
-func init() {
+func Initalize() {
 	viper.SetEnvPrefix(Prefix)
 	viper.AutomaticEnv()
 

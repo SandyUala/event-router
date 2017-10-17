@@ -26,6 +26,7 @@ type ProducerOptions struct {
 	Integrations     *integrations.Client
 	MessageTimeout   int
 	FlushTimeout     int
+	Cassandra
 }
 
 type Message struct {

@@ -7,11 +7,13 @@ import (
 
 	"github.com/astronomerio/event-router/api"
 	"github.com/astronomerio/event-router/api/v1"
+	"github.com/astronomerio/event-router/cassandra"
 	"github.com/astronomerio/event-router/config"
 	"github.com/astronomerio/event-router/houston"
 	"github.com/astronomerio/event-router/integrations"
 	"github.com/astronomerio/event-router/kafka/clickstream"
 	"github.com/astronomerio/event-router/sse"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,13 +23,26 @@ var (
 		Short: "run even-router with a mock houston, takes a list of integrations to enabled",
 		Run:   mock,
 	}
+
+	cassandraServers           string
+	enableCassandra            bool
+	cassandraReplicationFactor int
+	cassandraTable             string
 )
 
 func init() {
 	RootCmd.AddCommand(MockCmd)
+	MockCmd.Flags().StringVar(&cassandraServers, "cassandra-servers", "", "comma separated list of cassandra servers")
+	MockCmd.Flags().BoolVar(&enableCassandra, "enable-cassandra", false, "enable cassandra for recording message ids")
+	MockCmd.Flags().IntVar(&cassandraReplicationFactor, "replication-factor", 1, "cassandra replication factor")
+	MockCmd.Flags().StringVar(&cassandraTable, "cassandra-table", "", "casandra table")
 }
 
 func mock(cmd *cobra.Command, args []string) {
+	// Setup debug logging first
+	if config.IsDebugEnabled() {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	logger := log.WithField("function", "start")
 	logger.Info("Starting mock event-router")
 
@@ -45,8 +60,6 @@ func mock(cmd *cobra.Command, args []string) {
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topics := strings.Split(config.GetString(config.TopicEnvLabel), ",")
-	sseURL := config.GetString(config.SSEURLEnvLabel)
-	sseAuth := config.GetString(config.SSEAuthEnvLabel)
 
 	// Parse the args
 	if len(args) == 0 {
@@ -67,8 +80,25 @@ func mock(cmd *cobra.Command, args []string) {
 	integration := integrations.NewClient(mockHoustonClient)
 
 	// SSE Client
-	sseClient := sse.NewSSEClient(sseURL, sseAuth)
-	sseClient.Subscribe("clickstream", integration.EventListener)
+	if !DisableSSE {
+		sseClient := sse.NewSSEClient(config.GetString(config.SSEURLEnvLabel),
+			config.GetString(config.SSEAuthEnvLabel))
+		sseClient.Subscribe("clickstream", integration.EventListener)
+	}
+
+	// If we are persisting to cassandra, create the client and pass it to the producer
+	var cassandraClient *cassandra.Client
+	if enableCassandra {
+		cassandraClient, err := cassandra.NewCilent(&cassandra.Configs{
+			MessageTableName:  cassandraTable,
+			ReplicationFactor: cassandraReplicationFactor,
+			Servers:           strings.Split(cassandraServers, ","),
+		})
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+	}
 
 	// Create our clickstreamProducer
 	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{

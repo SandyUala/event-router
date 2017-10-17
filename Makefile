@@ -1,4 +1,4 @@
-IMAGE_NAME=astronomerio/event-router:latest
+IMAGE_NAME=astronomerio/clickstream-event-router:latest
 
 GOTAGS ?= event-router
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
