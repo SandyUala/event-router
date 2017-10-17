@@ -7,6 +7,10 @@ GOARCH=$(shell go env GOARCH)
 
 all: build
 
+dep:
+	dep ensure -v
+	dep prune -v
+
 build:
 	go build -o event-router main.go
 

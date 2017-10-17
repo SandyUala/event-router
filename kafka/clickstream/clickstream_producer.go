@@ -8,6 +8,7 @@ import (
 
 	"encoding/json"
 
+	"github.com/astronomerio/event-router/cassandra"
 	"github.com/astronomerio/event-router/integrations"
 	"github.com/astronomerio/event-router/pkg/prom"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -18,34 +19,36 @@ import (
 type Producer struct {
 	producer     *kafka.Producer
 	integrations *integrations.Client
-	opts         *ProducerOptions
+	config       *ProducerConfig
 }
 
-type ProducerOptions struct {
+type ProducerConfig struct {
 	BootstrapServers string
 	Integrations     *integrations.Client
 	MessageTimeout   int
 	FlushTimeout     int
-	Cassandra
+	Cassandra        *cassandra.Client
+	CassandraEnabled bool
 }
 
 type Message struct {
 	AppId        string          `json:"appId"`
+	MessageID    string          `json:"messageId"`
 	Integrations map[string]bool `json:"integrations"`
 }
 
-func NewProducer(opts *ProducerOptions) (*Producer, error) {
+func NewProducer(config *ProducerConfig) (*Producer, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":  opts.BootstrapServers,
-		"message.timeout.ms": opts.MessageTimeout,
+		"bootstrap.servers":  config.BootstrapServers,
+		"message.timeout.ms": config.MessageTimeout,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating kafka messageHandler")
 	}
 	cs := &Producer{
 		producer:     p,
-		integrations: opts.Integrations,
-		opts:         opts,
+		integrations: config.Integrations,
+		config:       config,
 	}
 	// Handle messageHandler events in a goroutine
 	go cs.handleEvents()
@@ -83,6 +86,12 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 			Key:   []byte(key),
 			Value: message,
 		}
+		if c.config.CassandraEnabled {
+			// Send the message ID to cassandra
+			if err := c.config.Cassandra.InsertMessage(dat.MessageID, integration+"-sent"); err != nil {
+				logger.Error(err)
+			}
+		}
 	}
 }
 
@@ -113,6 +122,12 @@ func (c *Producer) handleEvents() {
 							return
 						}
 						prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Inc()
+						if c.config.CassandraEnabled {
+							// Send the message ID to cassandra
+							if err := c.config.Cassandra.InsertMessage(dat.MessageID, *m.TopicPartition.Topic+"-confirmed"); err != nil {
+								logger.Error(err)
+							}
+						}
 					}()
 				}
 			case *kafka.Error:
@@ -129,10 +144,13 @@ func (c *Producer) handleEvents() {
 func (c *Producer) Close() {
 	logger := log.WithField("function", "Close")
 	logger.Info("Closing messageHandler")
-	messagesLeftToFlushed := c.producer.Flush(c.opts.FlushTimeout)
+	messagesLeftToFlushed := c.producer.Flush(c.config.FlushTimeout)
 	if messagesLeftToFlushed != 0 {
-		logger.Errorf("Failed to flush %d messages after %d ms", messagesLeftToFlushed, c.opts.FlushTimeout)
+		logger.Errorf("Failed to flush %d messages after %d ms", messagesLeftToFlushed, c.config.FlushTimeout)
 	}
 	c.producer.Close()
+	if c.config.CassandraEnabled {
+		c.config.Cassandra.Close()
+	}
 	logger.Info("Producer Closed")
 }

@@ -45,9 +45,27 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gocql/gocql"
+  packages = [".","internal/lru","internal/murmur","internal/streams"]
+  revision = "04cbe7af6ed6de7b3d98480fca10df7ea9814bb6"
+
+[[projects]]
+  branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hailocab/go-hostpool"
+  packages = ["."]
+  revision = "e80d13ce29ede4452c43dea11e79b9bc8a15b478"
 
 [[projects]]
   branch = "master"
@@ -200,6 +218,12 @@
   version = "v8.18.2"
 
 [[projects]]
+  name = "gopkg.in/inf.v0"
+  packages = ["."]
+  revision = "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4"
+  version = "v0.9.0"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -208,6 +232,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2a01c949e847dfcd5cb1589e62a1a37bbdb3e8d9899c697fdac572fb38f65ff5"
+  inputs-digest = "b5122db20a2ce188fd0630ab07c869d36d86a684738f22077fb200854f765895"
   solver-name = "gps-cdcl"
   solver-version = 1

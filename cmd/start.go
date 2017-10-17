@@ -63,7 +63,7 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	// Create our clickstreamProducer
-	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{
+	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerConfig{
 		BootstrapServers: bootstrapServers,
 		Integrations:     integrationClient,
 		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMSEvnLabel),

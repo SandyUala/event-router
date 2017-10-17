@@ -25,17 +25,21 @@ var (
 	}
 
 	cassandraServers           string
-	enableCassandra            bool
+	cassandraEnabled           bool
 	cassandraReplicationFactor int
 	cassandraTable             string
+	runID                      int64
+	cassandraKeyspace          string
 )
 
 func init() {
 	RootCmd.AddCommand(MockCmd)
 	MockCmd.Flags().StringVar(&cassandraServers, "cassandra-servers", "", "comma separated list of cassandra servers")
-	MockCmd.Flags().BoolVar(&enableCassandra, "enable-cassandra", false, "enable cassandra for recording message ids")
+	MockCmd.Flags().BoolVar(&cassandraEnabled, "enable-cassandra", false, "enable cassandra for recording message ids")
 	MockCmd.Flags().IntVar(&cassandraReplicationFactor, "replication-factor", 1, "cassandra replication factor")
 	MockCmd.Flags().StringVar(&cassandraTable, "cassandra-table", "", "casandra table")
+	MockCmd.Flags().Int64Var(&runID, "run-id", 0, "run id")
+	MockCmd.Flags().StringVar(&cassandraKeyspace, "cassandra-keyspace", "mock", "cassandra keyspace")
 }
 
 func mock(cmd *cobra.Command, args []string) {
@@ -88,11 +92,26 @@ func mock(cmd *cobra.Command, args []string) {
 
 	// If we are persisting to cassandra, create the client and pass it to the producer
 	var cassandraClient *cassandra.Client
-	if enableCassandra {
-		cassandraClient, err := cassandra.NewCilent(&cassandra.Configs{
+	var err error
+	if cassandraEnabled {
+		if len(cassandraServers) == 0 {
+			logger.Error("--cassandra-servers required when cassandra is enabled")
+			os.Exit(1)
+		}
+		if len(cassandraTable) == 0 {
+			logger.Error("--cassandra-table required when cassandra is enabled")
+			os.Exit(1)
+		}
+		if runID == 0 {
+			logger.Error("--run-id required when cassandra is enabled")
+			os.Exit(1)
+		}
+		cassandraClient, err = cassandra.NewClient(&cassandra.Configs{
 			MessageTableName:  cassandraTable,
 			ReplicationFactor: cassandraReplicationFactor,
 			Servers:           strings.Split(cassandraServers, ","),
+			RunID:             runID,
+			Keyspace:          cassandraKeyspace,
 		})
 		if err != nil {
 			logger.Error(err)
@@ -101,10 +120,12 @@ func mock(cmd *cobra.Command, args []string) {
 	}
 
 	// Create our clickstreamProducer
-	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerOptions{
+	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerConfig{
 		BootstrapServers: bootstrapServers,
 		Integrations:     integration,
 		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMSEvnLabel),
+		Cassandra:        cassandraClient,
+		CassandraEnabled: cassandraEnabled,
 	})
 	if err != nil {
 		logger.Panic(err)
