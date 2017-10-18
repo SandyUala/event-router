@@ -18,8 +18,8 @@ var (
 		Help: "The number of clickstream message received by SSE client",
 	})
 
-	MessagesProducedFailuer = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "message_produced_failure",
+	MessagesProducedFailed = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "messages_produced_failed",
 		Help: "The number of messages produced that failed to send",
 	})
 )
@@ -29,6 +29,6 @@ func init() {
 		MessagesConsumed,
 		MessagesProduced,
 		SSEClickstreamMessagesReceived,
-		MessagesProducedFailuer,
+		MessagesProducedFailed,
 	)
 }
