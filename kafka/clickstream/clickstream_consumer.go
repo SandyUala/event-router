@@ -8,6 +8,7 @@ import (
 	"github.com/astronomerio/event-router/kafka"
 	"github.com/astronomerio/event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,6 +19,7 @@ var (
 type Consumer struct {
 	options        *ConsumerOptions
 	messageHandler kafka.MessageHandler
+	consumer       *confluent.Consumer
 }
 
 type ConsumerOptions struct {
@@ -28,9 +30,22 @@ type ConsumerOptions struct {
 }
 
 func NewConsumer(opts *ConsumerOptions) (*Consumer, error) {
+	consumer, err := confluent.NewConsumer(&confluent.ConfigMap{
+		"bootstrap.servers":               opts.BootstrapServers,
+		"group.id":                        opts.GroupID,
+		"session.timeout.ms":              6000,
+		"go.events.channel.enable":        true,
+		"go.application.rebalance.enable": true,
+		"enable.auto.commit":              true,
+		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"}})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "Error creating consumer")
+	}
 	return &Consumer{
 		options:        opts,
 		messageHandler: opts.MessageHandler,
+		consumer:       consumer,
 	}, nil
 }
 
@@ -46,21 +61,7 @@ func (c *Consumer) Run() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	consumer, err := confluent.NewConsumer(&confluent.ConfigMap{
-		"bootstrap.servers":               c.options.BootstrapServers,
-		"group.id":                        c.options.GroupID,
-		"session.timeout.ms":              6000,
-		"go.events.channel.enable":        true,
-		"go.application.rebalance.enable": true,
-		"enable.auto.commit":              true,
-		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"}})
-
-	if err != nil {
-		logger.Error(err)
-		return
-	}
-
-	err = consumer.SubscribeTopics(c.options.Topics, nil)
+	err := c.consumer.SubscribeTopics(c.options.Topics, nil)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -73,14 +74,14 @@ func (c *Consumer) Run() {
 			logger.Infof("Consumer caught signal %v: terminating", sig)
 			run = false
 
-		case ev := <-consumer.Events():
+		case ev := <-c.consumer.Events():
 			switch e := ev.(type) {
 			case confluent.AssignedPartitions:
 				logger.Infof("Assigning Partition %v", e)
-				consumer.Assign(e.Partitions)
+				c.consumer.Assign(e.Partitions)
 			case confluent.RevokedPartitions:
 				logger.Infof("Revoking Partition %v", e)
-				consumer.Unassign()
+				c.consumer.Unassign()
 			case *confluent.Message:
 				go c.messageHandler.HandleMessage(e.Value, e.Key)
 				go prom.MessagesConsumed.Inc()
@@ -92,6 +93,6 @@ func (c *Consumer) Run() {
 		}
 	}
 
-	consumer.Close()
+	c.consumer.Close()
 	logger.Info("Consumer Closed")
 }

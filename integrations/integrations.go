@@ -18,6 +18,12 @@ var (
 	globalLock      sync.Mutex
 )
 
+type Integrations interface {
+	GetIntegrations(appId string) *map[string]string
+	UpdateIntegrationsForApp(appId string) error
+	EventListener(eventRaw, dataRaw []byte)
+}
+
 /*
  Map holding a cache of enabled integrations
 */
@@ -95,8 +101,9 @@ type SSEMessage struct {
 	AppID string `json:"appId"`
 }
 
-func (c *Client) EventListener(eventRaw []byte, dataRaw []byte) {
+func (c *Client) EventListener(eventRaw, dataRaw []byte) {
 	logger := log.WithField("function", "EventListener")
+
 	event := string(eventRaw)
 	data := SSEMessage{}
 	if err := json.Unmarshal(dataRaw, data); err != nil {

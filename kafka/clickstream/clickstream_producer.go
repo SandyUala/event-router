@@ -18,13 +18,13 @@ import (
 
 type Producer struct {
 	producer     *kafka.Producer
-	integrations *integrations.Client
+	integrations integrations.Integrations
 	config       *ProducerConfig
 }
 
 type ProducerConfig struct {
 	BootstrapServers string
-	Integrations     *integrations.Client
+	Integrations     integrations.Integrations
 	MessageTimeout   int
 	FlushTimeout     int
 	Cassandra        *cassandra.Client

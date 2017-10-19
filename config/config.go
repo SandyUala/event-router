@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/astronomerio/event-router/cmd"
 	"github.com/astronomerio/event-router/pkg"
 	"github.com/astronomerio/viper"
 	"github.com/sirupsen/logrus"
@@ -54,7 +53,11 @@ var (
 	}
 )
 
-func Initalize() {
+type InitOptions struct {
+	EnableRetry bool
+}
+
+func Initalize(opts *InitOptions) {
 	viper.SetEnvPrefix(Prefix)
 	viper.AutomaticEnv()
 
@@ -62,7 +65,7 @@ func Initalize() {
 	setDefaults()
 
 	// If retry logic is enabled, additional env vars are required
-	if cmd.EnableRetry {
+	if opts.EnableRetry {
 		requiredEnvs = append(requiredEnvs, retryRequiredEnvs...)
 	}
 

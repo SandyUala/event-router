@@ -22,5 +22,9 @@ func init() {
 }
 
 func initConfig() {
-	config.Initalize()
+	config.Initalize(
+		&config.InitOptions{
+			EnableRetry: EnableRetry,
+		},
+	)
 }

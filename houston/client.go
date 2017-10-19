@@ -30,9 +30,10 @@ type HoustonResponse struct {
 }
 
 // NewHoustonClient returns a new Client with the logger and HTTP client setup.
-func NewHoustonClient(HTTPClient *pkg.HTTPClient) *Client {
+func NewHoustonClient(HTTPClient *pkg.HTTPClient, apiURL string) *Client {
 	return &Client{
 		HTTPClient: HTTPClient,
+		APIUrl:     apiURL,
 	}
 }
 
@@ -132,7 +133,7 @@ func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
 		return nil, errors.Wrap(err, "Error getting source integrations")
 	}
 	var queryResponse QuerySourcesResponse
-	if err = json.Unmarshal(houstonResponse.Body, queryResponse); err != nil {
+	if err = json.Unmarshal(houstonResponse.Body, &queryResponse); err != nil {
 		return nil, errors.Wrap(err, "Error decoding query sources response")
 	}
 	integrationsMap := make(map[string]string)
@@ -209,7 +210,7 @@ func (c *Client) getToken() (string, error) {
 		return "", errors.Wrap(err, "Error creating token")
 	}
 	var createTokenRespones CreateTokenResponse
-	if err = json.Unmarshal(houstonResponse.Body, createTokenRespones); err != nil {
+	if err = json.Unmarshal(houstonResponse.Body, &createTokenRespones); err != nil {
 		return "", errors.Wrap(err, "Error unmarshaling create token response")
 	}
 	if createTokenRespones.Data.CreateToken.Success {
@@ -225,7 +226,7 @@ func (c *Client) verifyToken() (bool, error) {
 		return false, errors.Wrap(err, "Error verifying token")
 	}
 	var verifyResponse VerifyTokenResponse
-	if err = json.Unmarshal(queryResponse.Body, verifyResponse); err != nil {
+	if err = json.Unmarshal(queryResponse.Body, &verifyResponse); err != nil {
 		return false, errors.Wrap(err, "Error unmarshaling verify response")
 	}
 	return verifyResponse.Data.VerifyToken.Success, nil
