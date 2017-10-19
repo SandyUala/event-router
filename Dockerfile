@@ -13,8 +13,6 @@ MAINTAINER Ken Herner <ken@astronomer.io>
 COPY --from=0 /go/src/github.com/astronomerio/event-router/event-router /usr/local/bin/event-router
 COPY ./wait-for-it.sh /usr/local/bin/wait-for-it
 
-RUN apk --no-cache add openssl lz4 libsasl ca-certificates bash
-
 ENV GIN_MODE=release
 EXPOSE 9091
 
