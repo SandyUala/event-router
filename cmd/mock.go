@@ -40,6 +40,7 @@ func init() {
 	MockCmd.Flags().StringVar(&cassandraTable, "cassandra-table", "", "casandra table")
 	MockCmd.Flags().Int64Var(&runID, "run-id", 0, "run id")
 	MockCmd.Flags().StringVar(&cassandraKeyspace, "cassandra-keyspace", "mock", "cassandra keyspace")
+	MockCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enable retry logic")
 }
 
 func mock(cmd *cobra.Command, args []string) {
@@ -135,31 +136,33 @@ func mock(cmd *cobra.Command, args []string) {
 		logger.Panic(err)
 	}
 
-	// Create clickstream handler
-	clickstreamHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+	// Create clickstream consumer
+	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
 		Topics:           topics,
 		MessageHandler:   clickstreamProducer,
 	})
 	logger.Info("Starting Clickstream Handler")
-	go clickstreamHandler.Run()
+	go clickstreamConsumer.Run()
 
-	// Create clickstream retry producer
-	clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamOptions, config.GetInt(config.MaxRetriesEnvLabel))
-	if err != nil {
-		logger.Panic(err)
+	if EnableRetry {
+		// Create clickstream retry producer
+		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamOptions, config.GetInt(config.MaxRetriesEnvLabel))
+		if err != nil {
+			logger.Panic(err)
+		}
+
+		// Create clickstream retry consumer
+		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+			BootstrapServers: bootstrapServers,
+			GroupID:          config.GetString(config.GroupIDEnvLabel),
+			Topics:           []string{clickstreamOptions.RetryTopic},
+			MessageHandler:   clickstreamRetryProducer,
+		})
+		logger.Info("Starting Clickstream Retry Handler")
+		go clickstreamRetryConsumer.Run()
 	}
-
-	// Create clickstream retry handler
-	clickstreamRetryHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
-		BootstrapServers: bootstrapServers,
-		GroupID:          config.GetString(config.GroupIDEnvLabel),
-		Topics:           []string{clickstreamOptions.RetryTopic},
-		MessageHandler:   clickstreamRetryProducer,
-	})
-	logger.Info("Starting Clickstream Retry Handler")
-	go clickstreamRetryHandler.Run()
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")

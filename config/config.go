@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/astronomerio/event-router/cmd"
 	"github.com/astronomerio/event-router/pkg"
 	"github.com/astronomerio/viper"
 	"github.com/sirupsen/logrus"
@@ -38,8 +39,6 @@ const (
 var (
 	debug = false
 
-	initialized = false
-
 	requiredEnvs = []string{
 		BootstrapServersEnvLabel,
 		HoustonAPIURLEnvLabel,
@@ -47,6 +46,9 @@ var (
 		GroupIDEnvLabel,
 		SSEURLEnvLabel,
 		SSEAuthEnvLabel,
+	}
+
+	retryRequiredEnvs = []string{
 		ClickstreamRetryTopicEnvLabel,
 		ClickstreamRetryS3BucketEnvLabel,
 	}
@@ -58,6 +60,11 @@ func Initalize() {
 
 	// Setup default configs
 	setDefaults()
+
+	// If retry logic is enabled, additional env vars are required
+	if cmd.EnableRetry {
+		requiredEnvs = append(requiredEnvs, retryRequiredEnvs...)
+	}
 
 	// Verify required configs
 	if err := verifyRequiredEnvVars(); err != nil {

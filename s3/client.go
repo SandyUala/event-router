@@ -13,6 +13,10 @@ var (
 	log = logrus.WithField("package", "s3")
 )
 
+type S3Client interface {
+	SendToS3(bucket, key *string, body []byte) error
+}
+
 type Client struct {
 	uploader *s3manager.Uploader
 }
@@ -46,5 +50,13 @@ func (c *Client) SendToS3(bucket, key *string, body []byte) error {
 		return errors.Wrap(err, "Error uploading to S3")
 	}
 
+	return nil
+}
+
+// Mock client for testing
+
+type MockClient struct{}
+
+func (c *MockClient) SendToS3(bucket, key *string, body []byte) error {
 	return nil
 }

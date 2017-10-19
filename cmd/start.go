@@ -22,10 +22,13 @@ var (
 		Long:  "Starts the event-router",
 		Run:   start,
 	}
+
+	EnableRetry = false
 )
 
 func init() {
 	RootCmd.AddCommand(StartCmd)
+	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -77,31 +80,38 @@ func start(cmd *cobra.Command, args []string) {
 		logger.Panic(err)
 	}
 
-	// Clickstream Handler
-	clickstreamHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+	// Clickstream Consumer
+	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
 		Topics:           topics,
 		MessageHandler:   clickstreamProducer,
 	})
-	go clickstreamHandler.Run()
+	go clickstreamConsumer.Run()
 
-	// Create clickstream retry producer
-	clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetriesEnvLabel))
-	if err != nil {
-		logger.Panic(err)
+	// If Retry is enabled, start the consumer and producer
+	if EnableRetry {
+		// Create clickstream retry producer
+		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetriesEnvLabel))
+		if err != nil {
+			logger.Panic(err)
+		}
+
+		// Create clickstream retry consumer
+		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+			BootstrapServers: bootstrapServers,
+			GroupID:          config.GetString(config.GroupIDEnvLabel),
+			Topics:           []string{clickstreamProducerOptions.RetryTopic},
+			MessageHandler:   clickstreamRetryProducer,
+		})
+		logger.Info("Starting Clickstream Retry Handler")
+		go clickstreamRetryConsumer.Run()
 	}
 
-	// Create clickstream retry handler
-	clickstreamRetryHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
-		BootstrapServers: bootstrapServers,
-		GroupID:          config.GetString(config.GroupIDEnvLabel),
-		Topics:           []string{clickstreamProducerOptions.RetryTopic},
-		MessageHandler:   clickstreamRetryProducer,
-	})
-	logger.Info("Starting Clickstream Retry Handler")
-	go clickstreamRetryHandler.Run()
-
 	// Start the simple server
-	apiClient.Serve(config.GetString(config.ServePortEnvLabel))
+	logger.Info("Starting HTTP Server")
+	if err := apiClient.Serve(config.GetString(config.ServePortEnvLabel)); err != nil {
+		logger.Panic(err)
+	}
+	logger.Debug("Exiting event-router")
 }
