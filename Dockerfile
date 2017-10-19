@@ -5,7 +5,7 @@ MAINTAINER Ken Herner <ken@astronomer.io>
 WORKDIR /go/src/github.com/astronomerio/event-router
 COPY . .
 
-RUN make static
+RUN make
 
 FROM astronomerio/alpine-librdkafka:3.6-0.11.0-r0
 MAINTAINER Ken Herner <ken@astronomer.io>
