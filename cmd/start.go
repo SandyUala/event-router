@@ -49,7 +49,7 @@ func start(cmd *cobra.Command, args []string) {
 	httpClient := pkg.NewHTTPClient()
 
 	// Houston Client
-	houstonClient := houston.NewHoustonClient(httpClient)
+	houstonClient := houston.NewHoustonClient(httpClient, config.GetString(config.HoustonAPIURLEnvLabel))
 
 	// Integration Client
 	integrationClient := integrations.NewClient(houstonClient)

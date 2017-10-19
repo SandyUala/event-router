@@ -113,7 +113,7 @@ func (c *Producer) handleEvents() {
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
-					prom.MessagesProducedFailuer.Inc()
+					prom.MessagesProducedFailed.Inc()
 				} else {
 					go func() {
 						dat := &Message{}

@@ -30,9 +30,10 @@ type HoustonResponse struct {
 }
 
 // NewHoustonClient returns a new Client with the logger and HTTP client setup.
-func NewHoustonClient(HTTPClient *pkg.HTTPClient) *Client {
+func NewHoustonClient(HTTPClient *pkg.HTTPClient, apiURL string) *Client {
 	return &Client{
 		HTTPClient: HTTPClient,
+		APIUrl:     apiURL,
 	}
 }
 
