@@ -3,6 +3,8 @@ package integrations
 import (
 	"sync"
 
+	"encoding/json"
+
 	"github.com/astronomerio/event-router/houston"
 	"github.com/astronomerio/event-router/pkg/prom"
 	"github.com/pkg/errors"
@@ -81,16 +83,28 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 	if err != nil {
 		return errors.Wrap(err, "Error updating integrations")
 	}
+	// Call get on the map to ensure a lock for the API was created
+	integrationsMap.Get(appId)
+	syncMap[appId].Lock()
 	integrationsMap.Put(appId, &ints)
+	syncMap[appId].Unlock()
 	return nil
 }
 
+type SSEMessage struct {
+	AppID string `json:"appId"`
+}
+
 func (c *Client) EventListener(eventRaw []byte, dataRaw []byte) {
+	logger := log.WithField("function", "EventListener")
 	event := string(eventRaw)
-	data := string(dataRaw)
-	log.Infof("AppID %s integrations updated ")
+	data := SSEMessage{}
+	if err := json.Unmarshal(dataRaw, data); err != nil {
+		logger.Error("Error unmarshaling data")
+	}
 	if event == "clickstream" {
 		prom.SSEClickstreamMessagesReceived.Inc()
-		c.UpdateIntegrationsForApp(data)
+		c.UpdateIntegrationsForApp(data.AppID)
+		log.Infof("AppID %s integrations updated ")
 	}
 }

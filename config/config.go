@@ -24,6 +24,10 @@ const (
 	SSEAuthEnvLabel                       = "SSE_AUTH"
 	KafkaProducerFlushTimeoutMSEnvLabel   = "KAFKA_PRODUCER_FLUSH_TIMEOUT_MS"
 	KafkaProducerMessageTimeoutMSEvnLabel = "KAFKA_PRODUCER_MESSAGE_TIMEOUT_MS"
+	MaxRetriesEnvLabel                    = "MAX_RETRIES"
+	ClickstreamRetryTopicEnvLabel         = "CLICKSTREAM_RETRY_TOPIC"
+	ClickstreamRetryS3BucketEnvLabel      = "CLICKSTREAM_RETRY_S3_BUCKET"
+	S3PathPrefixEnvLabel                  = "S3_PATH_PREFIX"
 
 	HoustonAPIURLEnvLabel   = "HOUSTON_API_URL"
 	HoustonAPIKeyEnvLabel   = "HOUSTON_API_KEY"
@@ -43,6 +47,8 @@ var (
 		GroupIDEnvLabel,
 		SSEURLEnvLabel,
 		SSEAuthEnvLabel,
+		ClickstreamRetryTopicEnvLabel,
+		ClickstreamRetryS3BucketEnvLabel,
 	}
 )
 
@@ -81,6 +87,7 @@ func setDefaults() {
 	viper.SetDefault(ServePortEnvLabel, "8080")
 	viper.SetDefault(KafkaProducerFlushTimeoutMSEnvLabel, 1000)
 	viper.SetDefault(KafkaProducerMessageTimeoutMSEvnLabel, 5000)
+	viper.SetDefault(MaxRetriesEnvLabel, 5)
 }
 
 func verifyRequiredEnvVars() error {

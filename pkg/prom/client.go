@@ -22,6 +22,11 @@ var (
 		Name: "messages_produced_failed",
 		Help: "The number of messages produced that failed to send",
 	})
+
+	MessagesRetried = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "messages_retried",
+		Help: "The number of clickstream message that retried to produce",
+	}, []string{"appId", "integration"})
 )
 
 func init() {
@@ -30,5 +35,6 @@ func init() {
 		MessagesProduced,
 		SSEClickstreamMessagesReceived,
 		MessagesProducedFailed,
+		MessagesRetried,
 	)
 }

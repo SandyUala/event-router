@@ -120,17 +120,22 @@ func mock(cmd *cobra.Command, args []string) {
 	}
 
 	// Create our clickstreamProducer
-	clickstreamProducer, err := clickstream.NewProducer(&clickstream.ProducerConfig{
+	clickstreamOptions := &clickstream.ProducerConfig{
 		BootstrapServers: bootstrapServers,
 		Integrations:     integration,
 		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMSEvnLabel),
 		Cassandra:        cassandraClient,
 		CassandraEnabled: cassandraEnabled,
-	})
+		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3BucketEnvLabel),
+		RetryTopic:       config.GetString(config.ClickstreamRetryTopicEnvLabel),
+		S3PathPrefix:     config.GetString(config.S3PathPrefixEnvLabel),
+	}
+	clickstreamProducer, err := clickstream.NewProducer(clickstreamOptions)
 	if err != nil {
 		logger.Panic(err)
 	}
 
+	// Create clickstream handler
 	clickstreamHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
@@ -139,6 +144,22 @@ func mock(cmd *cobra.Command, args []string) {
 	})
 	logger.Info("Starting Clickstream Handler")
 	go clickstreamHandler.Run()
+
+	// Create clickstream retry producer
+	clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamOptions, config.GetInt(config.MaxRetriesEnvLabel))
+	if err != nil {
+		logger.Panic(err)
+	}
+
+	// Create clickstream retry handler
+	clickstreamRetryHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+		BootstrapServers: bootstrapServers,
+		GroupID:          config.GetString(config.GroupIDEnvLabel),
+		Topics:           []string{clickstreamOptions.RetryTopic},
+		MessageHandler:   clickstreamRetryProducer,
+	})
+	logger.Info("Starting Clickstream Retry Handler")
+	go clickstreamRetryHandler.Run()
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")

@@ -29,6 +29,9 @@ type ProducerConfig struct {
 	FlushTimeout     int
 	Cassandra        *cassandra.Client
 	CassandraEnabled bool
+	RetryTopic       string
+	RetryS3Bucket    string
+	S3PathPrefix     string
 }
 
 type Message struct {
@@ -74,10 +77,6 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 		if ok, intEnabled := dat.Integrations[name]; ok && !intEnabled {
 			continue
 		}
-		//logger.WithFields(logrus.Fields{
-		//	"appId":       dat.AppId,
-		//	"integration": integration,
-		//}).Debug("Sending message to integration")
 		c.producer.ProduceChannel() <- &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
 				Topic:     &integration,
@@ -113,7 +112,22 @@ func (c *Producer) handleEvents() {
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
-					prom.MessagesProducedFailuer.Inc()
+					prom.MessagesProducedFailed.Inc()
+					// Send to the retry topic
+					retryMessage := RetryMessage{
+						Integration: *m.TopicPartition.Topic,
+						Message:     m.Value,
+					}
+
+					c.producer.ProduceChannel() <- &kafka.Message{
+						TopicPartition: kafka.TopicPartition{
+							Topic:     &c.config.RetryTopic,
+							Partition: kafka.PartitionAny,
+						},
+						Key:   []byte(m.Key),
+						Value: *retryMessage.ToBytes(),
+					}
+
 				} else {
 					go func() {
 						dat := &Message{}

@@ -12,13 +12,10 @@ dep:
 	dep prune -v
 
 build:
-	go build -o event-router main.go
-
-static:
 	go build -tags static -o event-router main.go
 
 install:
-	go install
+	go install -tags static
 
 run:
 	go run cmd/main.go
