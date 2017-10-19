@@ -131,14 +131,15 @@ func mock(cmd *cobra.Command, args []string) {
 		logger.Panic(err)
 	}
 
-	clickstreamHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+	// Create clickstream consumer
+	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
 		Topics:           topics,
 		MessageHandler:   clickstreamProducer,
 	})
 	logger.Info("Starting Clickstream Handler")
-	go clickstreamHandler.Run()
+	go clickstreamConsumer.Run()
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")

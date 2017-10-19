@@ -73,14 +73,14 @@ func start(cmd *cobra.Command, args []string) {
 		logger.Panic(err)
 	}
 
-	// Clickstream Handler
-	clickstreamHandler, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
+	// Clickstream Consumer
+	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
 		Topics:           topics,
 		MessageHandler:   clickstreamProducer,
 	})
-	go clickstreamHandler.Run()
+	go clickstreamConsumer.Run()
 
 	// Start the simple server
 	apiClient.Serve(config.GetString(config.ServePortEnvLabel))

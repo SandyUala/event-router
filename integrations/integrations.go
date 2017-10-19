@@ -16,6 +16,12 @@ var (
 	globalLock      sync.Mutex
 )
 
+type Integrations interface {
+	GetIntegrations(appId string) *map[string]string
+	UpdateIntegrationsForApp(appId string) error
+	EventListener(eventRaw, dataRaw []byte)
+}
+
 /*
  Map holding a cache of enabled integrations
 */
@@ -85,7 +91,7 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 	return nil
 }
 
-func (c *Client) EventListener(eventRaw []byte, dataRaw []byte) {
+func (c *Client) EventListener(eventRaw, dataRaw []byte) {
 	event := string(eventRaw)
 	data := string(dataRaw)
 	log.Infof("AppID %s integrations updated ")

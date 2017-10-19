@@ -18,13 +18,13 @@ import (
 
 type Producer struct {
 	producer     *kafka.Producer
-	integrations *integrations.Client
+	integrations integrations.Integrations
 	config       *ProducerConfig
 }
 
 type ProducerConfig struct {
 	BootstrapServers string
-	Integrations     *integrations.Client
+	Integrations     integrations.Integrations
 	MessageTimeout   int
 	FlushTimeout     int
 	Cassandra        *cassandra.Client
@@ -74,10 +74,6 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 		if ok, intEnabled := dat.Integrations[name]; ok && !intEnabled {
 			continue
 		}
-		//logger.WithFields(logrus.Fields{
-		//	"appId":       dat.AppId,
-		//	"integration": integration,
-		//}).Debug("Sending message to integration")
 		c.producer.ProduceChannel() <- &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
 				Topic:     &integration,
