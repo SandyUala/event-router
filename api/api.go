@@ -68,14 +68,9 @@ func (c *Client) Serve(port string) error {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	run := true
-	for run == true {
-		select {
-		case sig := <-sigchan:
-			logger.Infof("Webserver caught signal %v: terminating", sig)
-			srv.Close()
-			run = false
-		}
+	for sig := range sigchan {
+		logger.Infof("Webserver caught signal %v: terminating", sig)
+		srv.Close()
 	}
 	logger.Info("Shutdown Webserver")
 	return nil

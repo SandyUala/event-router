@@ -39,5 +39,24 @@ vet:
 		exit 1; \
 	fi
 
+test:
+	go test $(shell go list ./... | grep -v /vendor/)
+
+style:
+	@echo ">> checking code style"
+	@! gofmt -d $(shell find . -path ./vendor -prune -o -name '*.go' -print) | grep '^'
+
+staticcheck:
+	@echo ">> running staticcheck"
+	@staticcheck $(GOFILES)
+
+gosimple:
+	@echo ">> running gosimple"
+	@gosimple $(GOFILES)
+
+tools:
+	@echo ">> installing some extra tools"
+	@go get -u -v honnef.co/go/tools/...
+
 clean:
 	rm event-router

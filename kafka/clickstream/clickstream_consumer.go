@@ -68,7 +68,7 @@ func (c *Consumer) Run() {
 	}
 
 	run := true
-	for run == true {
+	for run {
 		select {
 		case sig := <-sigchan:
 			logger.Infof("Consumer caught signal %v: terminating", sig)

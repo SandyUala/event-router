@@ -3,6 +3,8 @@ package cmd
 import (
 	"strings"
 
+	"os"
+
 	"github.com/astronomerio/event-router/api"
 	"github.com/astronomerio/event-router/api/v1"
 	"github.com/astronomerio/event-router/config"
@@ -77,7 +79,8 @@ func start(cmd *cobra.Command, args []string) {
 	}
 	clickstreamProducer, err := clickstream.NewProducer(clickstreamProducerOptions)
 	if err != nil {
-		logger.Panic(err)
+		logger.Error(err)
+		os.Exit(1)
 	}
 
 	// Clickstream Consumer
@@ -87,6 +90,10 @@ func start(cmd *cobra.Command, args []string) {
 		Topics:           topics,
 		MessageHandler:   clickstreamProducer,
 	})
+	if err != nil {
+		logger.Error(err)
+		os.Exit(1)
+	}
 	go clickstreamConsumer.Run()
 
 	// If Retry is enabled, start the consumer and producer
@@ -94,7 +101,8 @@ func start(cmd *cobra.Command, args []string) {
 		// Create clickstream retry producer
 		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetriesEnvLabel))
 		if err != nil {
-			logger.Panic(err)
+			logger.Error(err)
+			os.Exit(1)
 		}
 
 		// Create clickstream retry consumer
@@ -104,6 +112,10 @@ func start(cmd *cobra.Command, args []string) {
 			Topics:           []string{clickstreamProducerOptions.RetryTopic},
 			MessageHandler:   clickstreamRetryProducer,
 		})
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
 		logger.Info("Starting Clickstream Retry Handler")
 		go clickstreamRetryConsumer.Run()
 	}

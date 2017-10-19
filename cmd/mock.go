@@ -143,6 +143,10 @@ func mock(cmd *cobra.Command, args []string) {
 		Topics:           topics,
 		MessageHandler:   clickstreamProducer,
 	})
+	if err != nil {
+		logger.Error(err)
+		os.Exit(1)
+	}
 	logger.Info("Starting Clickstream Handler")
 	go clickstreamConsumer.Run()
 
@@ -150,7 +154,8 @@ func mock(cmd *cobra.Command, args []string) {
 		// Create clickstream retry producer
 		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamOptions, config.GetInt(config.MaxRetriesEnvLabel))
 		if err != nil {
-			logger.Panic(err)
+			logger.Error(err)
+			os.Exit(1)
 		}
 
 		// Create clickstream retry consumer
@@ -160,6 +165,10 @@ func mock(cmd *cobra.Command, args []string) {
 			Topics:           []string{clickstreamOptions.RetryTopic},
 			MessageHandler:   clickstreamRetryProducer,
 		})
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
 		logger.Info("Starting Clickstream Retry Handler")
 		go clickstreamRetryConsumer.Run()
 	}

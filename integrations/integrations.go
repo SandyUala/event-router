@@ -106,7 +106,7 @@ func (c *Client) EventListener(eventRaw, dataRaw []byte) {
 
 	event := string(eventRaw)
 	data := SSEMessage{}
-	if err := json.Unmarshal(dataRaw, data); err != nil {
+	if err := json.Unmarshal(dataRaw, &data); err != nil {
 		logger.Error("Error unmarshaling data")
 	}
 	if event == "clickstream" {

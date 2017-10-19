@@ -100,7 +100,7 @@ func (c *Producer) handleEvents() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 	run := true
-	for run == true {
+	for run {
 		select {
 		case sig := <-sigchan:
 			logger.Infof("Producer caught signal %v: terminating", sig)

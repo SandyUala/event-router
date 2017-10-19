@@ -96,7 +96,7 @@ func (c *RetryProducer) handleEvents() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 	run := true
-	for run == true {
+	for run {
 		select {
 		case sig := <-sigchan:
 			logger.Infof("Retry Producer caught signal %v: terminating", sig)
