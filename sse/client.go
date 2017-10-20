@@ -53,7 +53,7 @@ func (c *Client) listen(stream string, handler func(event []byte, data []byte)) 
 	err := c.client.SubscribeChan(stream, eventChan)
 	if err != nil {
 		logger.Error(err)
-		return true
+		return false
 	}
 	logger.Infof("Subscribed to SSE Stream %s", stream)
 	sigchan := make(chan os.Signal, 1)

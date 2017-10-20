@@ -71,6 +71,7 @@ func (c *Client) Serve(port string) error {
 	for sig := range sigchan {
 		logger.Infof("Webserver caught signal %v: terminating", sig)
 		srv.Close()
+		return nil
 	}
 	logger.Info("Shutdown Webserver")
 	return nil
