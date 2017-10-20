@@ -1,9 +1,11 @@
-IMAGE_NAME=astronomerio/clickstream-event-router:latest
+IMAGE_NAME=astronomerio/clickstream-event-router
 
 GOTAGS ?= event-router
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
+
+VERSION ?= latest
 
 all: build
 
@@ -21,10 +23,10 @@ run:
 	go run cmd/main.go
 
 image:
-	docker build -t $(IMAGE_NAME) .
+	docker build -t $(IMAGE_NAME):$(VERSION) .
 
 push: image
-	docker push $(IMAGE_NAME)
+	docker push $(IMAGE_NAME):$(VERSION)
 
 format:
 	@echo "--> Running go fmt"
