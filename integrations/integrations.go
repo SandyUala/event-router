@@ -5,8 +5,8 @@ import (
 
 	"encoding/json"
 
-	"github.com/astronomerio/event-router/houston"
-	"github.com/astronomerio/event-router/pkg/prom"
+	"github.com/astronomerio/clickstream-event-router/houston"
+	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

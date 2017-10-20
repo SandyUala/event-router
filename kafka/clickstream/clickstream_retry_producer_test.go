@@ -3,7 +3,7 @@ package clickstream
 import (
 	"testing"
 
-	"github.com/astronomerio/event-router/s3"
+	"github.com/astronomerio/clickstream-event-router/s3"
 )
 
 var retryBlob = `

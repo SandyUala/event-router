@@ -8,8 +8,8 @@ import (
 
 	"encoding/json"
 
-	"github.com/astronomerio/event-router/config"
-	"github.com/astronomerio/event-router/pkg"
+	"github.com/astronomerio/clickstream-event-router/config"
+	"github.com/astronomerio/clickstream-event-router/pkg"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

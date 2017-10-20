@@ -8,7 +8,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/astronomerio/event-router/s3"
+	"github.com/astronomerio/clickstream-event-router/s3"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 )

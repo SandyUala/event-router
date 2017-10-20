@@ -5,8 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/astronomerio/event-router/kafka"
-	"github.com/astronomerio/event-router/pkg/prom"
+	"github.com/astronomerio/clickstream-event-router/kafka"
+	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

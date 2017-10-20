@@ -8,9 +8,9 @@ import (
 
 	"encoding/json"
 
-	"github.com/astronomerio/event-router/cassandra"
-	"github.com/astronomerio/event-router/integrations"
-	"github.com/astronomerio/event-router/pkg/prom"
+	"github.com/astronomerio/clickstream-event-router/cassandra"
+	"github.com/astronomerio/clickstream-event-router/integrations"
+	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
