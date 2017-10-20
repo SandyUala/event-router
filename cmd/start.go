@@ -12,6 +12,7 @@ import (
 	"github.com/astronomerio/event-router/integrations"
 	"github.com/astronomerio/event-router/kafka/clickstream"
 	"github.com/astronomerio/event-router/pkg"
+	"github.com/astronomerio/event-router/s3"
 	"github.com/astronomerio/event-router/sse"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -98,8 +99,13 @@ func start(cmd *cobra.Command, args []string) {
 
 	// If Retry is enabled, start the consumer and producer
 	if EnableRetry {
+		s3Client, err := s3.NewClient()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
 		// Create clickstream retry producer
-		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetriesEnvLabel))
+		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetriesEnvLabel), s3Client)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)

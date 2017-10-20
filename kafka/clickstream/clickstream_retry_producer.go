@@ -17,16 +17,16 @@ type RetryProducer struct {
 	producer  *confluent.Producer
 	config    *ProducerConfig
 	maxRetrys int
-	s3Client  *s3.Client
+	s3Client  s3.S3Client
 }
 
 type RetryMessage struct {
-	RetryCount  int    `json:"retryCount"`
-	Integration string `json:"integration"`
-	Message     []byte `json:"message"`
+	RetryCount  int             `json:"retryCount"`
+	Integration string          `json:"integration"`
+	Message     json.RawMessage `json:"message"`
 }
 
-func NewRetryProducer(config *ProducerConfig, maxRetrys int) (*RetryProducer, error) {
+func NewRetryProducer(config *ProducerConfig, maxRetrys int, s3Client s3.S3Client) (*RetryProducer, error) {
 	p, err := confluent.NewProducer(&confluent.ConfigMap{
 		"bootstrap.servers":  config.BootstrapServers,
 		"message.timeout.ms": config.MessageTimeout,
@@ -38,6 +38,7 @@ func NewRetryProducer(config *ProducerConfig, maxRetrys int) (*RetryProducer, er
 		producer:  p,
 		config:    config,
 		maxRetrys: maxRetrys,
+		s3Client:  s3Client,
 	}
 	// Handle messageHandler events in a goroutine
 	go cs.handleEvents()
