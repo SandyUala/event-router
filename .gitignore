@@ -3,3 +3,4 @@
 prometheus
 event-router
 pprof
+clickstream-event-router
