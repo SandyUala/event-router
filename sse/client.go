@@ -48,14 +48,14 @@ func (c *Client) Subscribe(stream string, handler func(event []byte, data []byte
 
 func (c *Client) listen(stream string, handler func(event []byte, data []byte)) bool {
 	logger := log.WithField("function", "listen")
-	logger.Infof("Subscribed to SS3 Stream %s", stream)
+	logger.Info("Starting SSE Listener")
 	eventChan := make(chan *sse.Event)
 	err := c.client.SubscribeChan(stream, eventChan)
 	if err != nil {
 		logger.Error(err)
 		return true
 	}
-
+	logger.Infof("Subscribed to SSE Stream %s", stream)
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 

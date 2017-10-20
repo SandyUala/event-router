@@ -2,7 +2,7 @@ FROM astronomerio/alpine-librdkafka-golang
 MAINTAINER Ken Herner <ken@astronomer.io>
 
 
-WORKDIR /go/src/github.com/astronomerio/event-router
+WORKDIR /go/src/github.com/astronomerio/clickstream-event-router
 COPY . .
 
 RUN make
