@@ -16,6 +16,7 @@ import (
 
 type HoustonClient interface {
 	GetIntegrations(appId string) (map[string]string, error)
+	GetAuthorizationKey() (string, error)
 }
 
 // Client the HTTPClient used to communicate with the HoustonAPI
@@ -124,9 +125,9 @@ func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
 	logger.WithField("appId", appId).Debug("Entered GetIntegrations")
 
 	query := fmt.Sprintf(querySources, appId)
-	authKey, err := c.getAuthorizationKey()
+	authKey, err := c.GetAuthorizationKey()
 	if err != nil {
-		return nil, errors.Wrap(err, "Error getting source integrations")
+		return nil, errors.Wrap(err, "Error getting auth key")
 	}
 	houstonResponse, err := c.queryHouston(query, authKey)
 	if err != nil {
@@ -149,13 +150,13 @@ func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
 
 func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, error) {
 	logger := log.WithField("function", "QueryHouston")
-	logger.WithField("query", query).Debug("Querying Houston")
 	doOpts := &pkg.DoOptions{
 		Data: GraphQLQuery{query},
 		Headers: map[string]string{
 			"Accept": "application/json",
 		},
 	}
+	logger.WithField("query", doOpts.Data).Debug("Querying Houston")
 	if len(authKey) != 0 {
 		doOpts.Headers["authorization"] = authKey
 	}
@@ -174,7 +175,7 @@ func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, er
 	return response, nil
 }
 
-func (c *Client) getAuthorizationKey() (string, error) {
+func (c *Client) GetAuthorizationKey() (string, error) {
 	// Check for a houston api key
 	houstonAPIKey := config.GetString(config.HoustonAPIKeyEnvLabel)
 	var authKey string
@@ -196,7 +197,8 @@ func (c *Client) getToken() (string, error) {
 	if len(authToken) != 0 {
 		success, err := c.verifyToken()
 		if err != nil {
-			return "", errors.Wrap(err, "Error getting token")
+			// Dont' want to return, try to get a new key
+			log.Infof("Error validating auth key: %v", err)
 		}
 		if success {
 			return authToken, nil

@@ -32,6 +32,7 @@ type ProducerConfig struct {
 	RetryTopic       string
 	RetryS3Bucket    string
 	S3PathPrefix     string
+	MasterTopic      string
 }
 
 type Message struct {
@@ -58,20 +59,32 @@ func NewProducer(config *ProducerConfig) (*Producer, error) {
 	return cs, nil
 }
 
-func (c *Producer) HandleMessage(message []byte, key []byte) {
+func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	logger := log.WithField("function", "HandleMessage")
 	// Get the appId
 	dat := &Message{}
 	if err := json.Unmarshal(message, &dat); err != nil {
 		logger.Error("Error unmarshaling message json: " + err.Error())
-		return
+		return errors.Wrap(err, "Error unmarshaling json")
 	}
-	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
-	ints := c.integrations.GetIntegrations(dat.AppId)
+	ints, err := c.integrations.GetIntegrations(dat.AppId)
+	if err != nil {
+		// We had an error connecting to Houston.  Put the message back onto the main
+		// topic so we don't lose it
+		c.producer.ProduceChannel() <- &kafka.Message{
+			TopicPartition: kafka.TopicPartition{
+				Topic:     &c.config.MasterTopic,
+				Partition: kafka.PartitionAny,
+			},
+			Key:   key,
+			Value: message,
+		}
+		return errors.Wrap(err, "Error getting integrations for appID "+dat.AppId)
+	}
 	if ints == nil {
 		logger.Errorf("No integrations returned for appId %s", dat.AppId)
-		return
 	}
+	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
 	for name, integration := range *ints {
 		// If the integration name is in the list of integrations from the message,
 		// and the message has it as false, don't send.  If there is no value, don't send
@@ -83,7 +96,7 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 				Topic:     &integration,
 				Partition: kafka.PartitionAny,
 			},
-			Key:   []byte(key),
+			Key:   key,
 			Value: message,
 		}
 		if c.config.CassandraEnabled {
@@ -93,6 +106,7 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 			}
 		}
 	}
+	return nil
 }
 
 func (c *Producer) handleEvents() {

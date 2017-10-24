@@ -21,7 +21,6 @@ const (
 	GroupIDEnvLabel                       = "GROUP_ID"
 	TopicEnvLabel                         = "TOPIC"
 	SSEURLEnvLabel                        = "SSE_URL"
-	SSEAuthEnvLabel                       = "SSE_AUTH"
 	KafkaProducerFlushTimeoutMSEnvLabel   = "KAFKA_PRODUCER_FLUSH_TIMEOUT_MS"
 	KafkaProducerMessageTimeoutMSEvnLabel = "KAFKA_PRODUCER_MESSAGE_TIMEOUT_MS"
 	MaxRetriesEnvLabel                    = "MAX_RETRIES"
@@ -44,7 +43,6 @@ var (
 		TopicEnvLabel,
 		GroupIDEnvLabel,
 		SSEURLEnvLabel,
-		SSEAuthEnvLabel,
 	}
 
 	retryRequiredEnvs = []string{
@@ -97,7 +95,7 @@ func setDefaults() {
 	viper.SetDefault(ServePortEnvLabel, "8080")
 	viper.SetDefault(KafkaProducerFlushTimeoutMSEnvLabel, 1000)
 	viper.SetDefault(KafkaProducerMessageTimeoutMSEvnLabel, 5000)
-	viper.SetDefault(MaxRetriesEnvLabel, 5)
+	viper.SetDefault(MaxRetriesEnvLabel, 2)
 }
 
 func verifyRequiredEnvVars() error {

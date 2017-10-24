@@ -19,7 +19,7 @@ var (
 )
 
 type Integrations interface {
-	GetIntegrations(appId string) *map[string]string
+	GetIntegrations(appId string) (*map[string]string, error)
 	UpdateIntegrationsForApp(appId string) error
 	EventListener(eventRaw, dataRaw []byte)
 }
@@ -62,26 +62,30 @@ func NewClient(houstonClient houston.HoustonClient) *Client {
 	return &Client{houstonClient: houstonClient}
 }
 
-func (c *Client) GetIntegrations(appId string) *map[string]string {
+func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 	integrations := integrationsMap.Get(appId)
 	if integrations == nil {
 		syncMap[appId].Lock()
 		log.Debugf("Populating integrations for appId %s", appId)
-		if integrations = c.getIntegrationsFromHouston(appId); integrations != nil {
+		integrations, err := c.getIntegrationsFromHouston(appId)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error getting integrations")
+		}
+		if integrations != nil {
 			integrationsMap.Put(appId, integrations)
 		}
 		syncMap[appId].Unlock()
 	}
-	return integrations
+	return integrations, nil
 }
 
-func (c *Client) getIntegrationsFromHouston(appId string) *map[string]string {
+func (c *Client) getIntegrationsFromHouston(appId string) (*map[string]string, error) {
 	integrations, err := c.houstonClient.GetIntegrations(appId)
 	if err != nil {
 		log.Error(err)
-		return nil
+		return nil, err
 	}
-	return &integrations
+	return &integrations, nil
 }
 
 func (c *Client) UpdateIntegrationsForApp(appId string) error {

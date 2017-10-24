@@ -25,7 +25,7 @@ type Consumer struct {
 type ConsumerOptions struct {
 	BootstrapServers string
 	GroupID          string
-	Topics           []string
+	Topic            string
 	MessageHandler   kafka.MessageHandler
 }
 
@@ -55,13 +55,13 @@ func (c *Consumer) Run() {
 	logger.WithFields(logrus.Fields{
 		"Bootstrap Servers": c.options.BootstrapServers,
 		"GroupID":           c.options.GroupID,
-		"Topics":            c.options.Topics,
+		"Topics":            c.options.Topic,
 	}).Debug("Consumer Options")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	err := c.consumer.SubscribeTopics(c.options.Topics, nil)
+	err := c.consumer.SubscribeTopics([]string{c.options.Topic}, nil)
 	if err != nil {
 		logger.Error(err)
 		return
@@ -83,7 +83,12 @@ func (c *Consumer) Run() {
 				logger.Infof("Revoking Partition %v", e)
 				c.consumer.Unassign()
 			case *confluent.Message:
-				c.messageHandler.HandleMessage(e.Value, e.Key)
+				err := c.messageHandler.HandleMessage(e.Value, e.Key)
+				// If we receive an error its because we had an issue connecting to houston
+				if err != nil {
+					logger.Error(err)
+					break
+				}
 				prom.MessagesConsumed.Inc()
 			case confluent.PartitionEOF:
 				logger.Infof("Reached %v", e)
@@ -92,7 +97,10 @@ func (c *Consumer) Run() {
 			}
 		}
 	}
+	c.Close()
+}
 
+func (c *Consumer) Close() {
 	c.consumer.Close()
-	logger.Info("Consumer Closed")
+	log.Info("Consumer Closed")
 }

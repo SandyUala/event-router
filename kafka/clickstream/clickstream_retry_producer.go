@@ -47,12 +47,12 @@ func NewRetryProducer(config *ProducerConfig, maxRetrys int, s3Client s3.S3Clien
 	return cs, nil
 }
 
-func (c *RetryProducer) HandleMessage(message []byte, key []byte) {
+func (c *RetryProducer) HandleMessage(message []byte, key []byte) error {
 	logger := log.WithField("function", "HandleMessage")
 	dat := &RetryMessage{}
 	if err := json.Unmarshal(message, &dat); err != nil {
 		logger.Error("Error unmarshaling retry message json: " + err.Error())
-		return
+		return nil
 	}
 	// If we hit the max retries, send to S3
 	if dat.RetryCount > c.maxRetrys {
@@ -74,7 +74,7 @@ func (c *RetryProducer) HandleMessage(message []byte, key []byte) {
 		prom.BytesRetried.With(prometheus.Labels{"appId": m.AppId, "integration": dat.Integration}).Add(float64(len(dat.Message)))
 		prom.MessagesRetried.With(prometheus.Labels{"appId": m.AppId, "integration": dat.Integration}).Inc()
 	}()
-
+	return nil
 }
 
 func (c *RetryProducer) sendToS3(retryMessage *RetryMessage) {

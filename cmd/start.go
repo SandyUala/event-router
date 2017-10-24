@@ -1,9 +1,12 @@
 package cmd
 
 import (
-	"strings"
-
 	"os"
+
+	"time"
+
+	"os/signal"
+	"syscall"
 
 	"github.com/astronomerio/clickstream-event-router/api"
 	"github.com/astronomerio/clickstream-event-router/api/v1"
@@ -49,7 +52,7 @@ func start(cmd *cobra.Command, args []string) {
 	api.Debug = config.GetBool(config.DebugEnvLabel)
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
-	topics := strings.Split(config.GetString(config.TopicEnvLabel), ",")
+	topic := config.GetString(config.TopicEnvLabel)
 
 	// HTTP Client
 	httpClient := pkg.NewHTTPClient()
@@ -62,8 +65,7 @@ func start(cmd *cobra.Command, args []string) {
 
 	// SSE Client
 	if !DisableSSE {
-		sseClient := sse.NewSSEClient(config.GetString(config.SSEURLEnvLabel),
-			config.GetString(config.SSEAuthEnvLabel))
+		sseClient := sse.NewSSEClient(config.GetString(config.SSEURLEnvLabel), houstonClient)
 		// Register our integrations event listener with the SSE Client
 		sseClient.Subscribe("appChanges", integrationClient.EventListener)
 	}
@@ -77,6 +79,7 @@ func start(cmd *cobra.Command, args []string) {
 		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3BucketEnvLabel),
 		RetryTopic:       config.GetString(config.ClickstreamRetryTopicEnvLabel),
 		S3PathPrefix:     config.GetString(config.S3PathPrefixEnvLabel),
+		MasterTopic:      topic,
 	}
 	clickstreamProducer, err := clickstream.NewProducer(clickstreamProducerOptions)
 	if err != nil {
@@ -88,14 +91,38 @@ func start(cmd *cobra.Command, args []string) {
 	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
-		Topics:           topics,
+		Topic:            topic,
 		MessageHandler:   clickstreamProducer,
 	})
 	if err != nil {
 		logger.Error(err)
 		os.Exit(1)
 	}
-	go clickstreamConsumer.Run()
+	shouldShutdown := false
+	go func() {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigchan
+		shouldShutdown = true
+	}()
+
+	go func() {
+		for {
+			if shouldShutdown {
+				logger.Debug("Shutting down consumer")
+				return
+			}
+			// Try to get an auth token.  Used as a healthcheck
+			_, err := houstonClient.GetAuthorizationKey()
+			if err != nil {
+				logger.Error(err)
+				// Sleep for 5 seconds
+				time.Sleep(time.Second * 5)
+			} else {
+				clickstreamConsumer.Run()
+			}
+		}
+	}()
 
 	// If Retry is enabled, start the consumer and producer
 	if EnableRetry {
@@ -115,7 +142,7 @@ func start(cmd *cobra.Command, args []string) {
 		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 			BootstrapServers: bootstrapServers,
 			GroupID:          config.GetString(config.GroupIDEnvLabel),
-			Topics:           []string{clickstreamProducerOptions.RetryTopic},
+			Topic:            clickstreamProducerOptions.RetryTopic,
 			MessageHandler:   clickstreamRetryProducer,
 		})
 		if err != nil {
@@ -129,7 +156,7 @@ func start(cmd *cobra.Command, args []string) {
 	// Start the simple server
 	logger.Info("Starting HTTP Server")
 	if err := apiClient.Serve(config.GetString(config.ServePortEnvLabel)); err != nil {
-		logger.Panic(err)
+		logger.Error(err)
 	}
 	logger.Debug("Exiting event-router")
 }

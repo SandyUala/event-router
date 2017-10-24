@@ -65,7 +65,7 @@ func mock(cmd *cobra.Command, args []string) {
 	api.Debug = config.GetBool(config.DebugEnvLabel)
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
-	topics := strings.Split(config.GetString(config.TopicEnvLabel), ",")
+	topic := config.GetString(config.TopicEnvLabel)
 
 	// Parse the args
 	if len(args) == 0 {
@@ -88,7 +88,7 @@ func mock(cmd *cobra.Command, args []string) {
 	// SSE Client
 	if !DisableSSE {
 		sseClient := sse.NewSSEClient(config.GetString(config.SSEURLEnvLabel),
-			config.GetString(config.SSEAuthEnvLabel))
+			mockHoustonClient)
 		sseClient.Subscribe("clickstream", integration.EventListener)
 	}
 
@@ -141,7 +141,7 @@ func mock(cmd *cobra.Command, args []string) {
 	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
-		Topics:           topics,
+		Topic:            topic,
 		MessageHandler:   clickstreamProducer,
 	})
 	if err != nil {
@@ -168,7 +168,7 @@ func mock(cmd *cobra.Command, args []string) {
 		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 			BootstrapServers: bootstrapServers,
 			GroupID:          config.GetString(config.GroupIDEnvLabel),
-			Topics:           []string{clickstreamOptions.RetryTopic},
+			Topic:            clickstreamOptions.RetryTopic,
 			MessageHandler:   clickstreamRetryProducer,
 		})
 		if err != nil {

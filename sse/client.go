@@ -7,6 +7,8 @@ import (
 
 	"time"
 
+	"github.com/astronomerio/clickstream-event-router/config"
+	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/r3labs/sse"
 	"github.com/sirupsen/logrus"
 )
@@ -15,15 +17,16 @@ var log = logrus.WithField("package", "sse")
 
 type Client struct {
 	client         *sse.Client
+	houstonClient  houston.HoustonClient
 	shouldShutdown bool
 	shutdownChan   chan struct{}
 }
 
-func NewSSEClient(sseUrl string, authorization string) *Client {
+func NewSSEClient(sseUrl string, houstonCLient houston.HoustonClient) *Client {
 	client := sse.NewClient(sseUrl)
-	client.Headers["authorization"] = authorization
 	return &Client{
-		client: client,
+		client:        client,
+		houstonClient: houstonCLient,
 	}
 }
 
@@ -46,6 +49,20 @@ func (c *Client) Subscribe(stream string, handler func(event []byte, data []byte
 
 	go func() {
 		for {
+			// Get the auth token.  We get it before we start listening because if the
+			// auth token has become invalidated, we need to get a new one.
+			// Check if we are using one from env variable or logging in.
+			auth := config.GetString(config.HoustonAPIKeyEnvLabel)
+			if len(auth) == 0 {
+				// Get the auth token
+				a, err := c.houstonClient.GetAuthorizationKey()
+				if err != nil {
+					logger.WithField("error", err).Error("Error getting auth token")
+					os.Exit(1)
+				}
+				auth = a
+			}
+			c.client.Headers["authorization"] = auth
 			if c.listen(stream, handler) && !c.shouldShutdown {
 				logger.Info("SSE Connection lost, reconnecting")
 			} else {
