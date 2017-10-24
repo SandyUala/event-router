@@ -2,9 +2,6 @@ package clickstream
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"encoding/json"
 
@@ -33,6 +30,7 @@ type ProducerConfig struct {
 	RetryS3Bucket    string
 	S3PathPrefix     string
 	MasterTopic      string
+	ShutdownChannel  chan struct{}
 }
 
 type Message struct {
@@ -112,13 +110,11 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 func (c *Producer) handleEvents() {
 	logger := log.WithField("function", "handleEvents")
 	logger.Debug("Entered handleEvents")
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 	run := true
 	for run {
 		select {
-		case sig := <-sigchan:
-			logger.Infof("Producer caught signal %v: terminating", sig)
+		case <-c.config.ShutdownChannel:
+			logger.Info("Producer shutting down")
 			c.Close()
 			run = false
 		case ev := <-c.producer.Events():

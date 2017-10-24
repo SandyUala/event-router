@@ -54,6 +54,9 @@ func start(cmd *cobra.Command, args []string) {
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topic := config.GetString(config.TopicEnvLabel)
 
+	// Shutdown Channel
+	shutdownChannel := make(chan struct{})
+
 	// HTTP Client
 	httpClient := pkg.NewHTTPClient()
 
@@ -80,6 +83,7 @@ func start(cmd *cobra.Command, args []string) {
 		RetryTopic:       config.GetString(config.ClickstreamRetryTopicEnvLabel),
 		S3PathPrefix:     config.GetString(config.S3PathPrefixEnvLabel),
 		MasterTopic:      topic,
+		ShutdownChannel:  shutdownChannel,
 	}
 	clickstreamProducer, err := clickstream.NewProducer(clickstreamProducerOptions)
 	if err != nil {
@@ -93,6 +97,7 @@ func start(cmd *cobra.Command, args []string) {
 		GroupID:          config.GetString(config.GroupIDEnvLabel),
 		Topic:            topic,
 		MessageHandler:   clickstreamProducer,
+		ShutdownChannel:  shutdownChannel,
 	})
 	if err != nil {
 		logger.Error(err)
@@ -103,6 +108,7 @@ func start(cmd *cobra.Command, args []string) {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigchan
+		close(shutdownChannel)
 		shouldShutdown = true
 	}()
 

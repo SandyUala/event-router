@@ -2,9 +2,6 @@ package clickstream
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"encoding/json"
 
@@ -104,13 +101,11 @@ func (c *RetryProducer) handleEvents() {
 	logger := log.WithField("function", "handleEvents")
 	logger.Debug("Entered handleEvents")
 
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 	run := true
 	for run {
 		select {
-		case sig := <-sigchan:
-			logger.Infof("Retry Producer caught signal %v: terminating", sig)
+		case <-c.config.ShutdownChannel:
+			logger.Infof("Retry Producer shutting dow")
 			c.Close()
 			run = false
 		case ev := <-c.producer.Events():

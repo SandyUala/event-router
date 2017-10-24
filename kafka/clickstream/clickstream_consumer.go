@@ -1,10 +1,6 @@
 package clickstream
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/astronomerio/clickstream-event-router/kafka"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
@@ -27,6 +23,7 @@ type ConsumerOptions struct {
 	GroupID          string
 	Topic            string
 	MessageHandler   kafka.MessageHandler
+	ShutdownChannel  chan struct{}
 }
 
 func NewConsumer(opts *ConsumerOptions) (*Consumer, error) {
@@ -58,9 +55,6 @@ func (c *Consumer) Run() {
 		"Topics":            c.options.Topic,
 	}).Debug("Consumer Options")
 
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
 	err := c.consumer.SubscribeTopics([]string{c.options.Topic}, nil)
 	if err != nil {
 		logger.Error(err)
@@ -70,8 +64,8 @@ func (c *Consumer) Run() {
 	run := true
 	for run {
 		select {
-		case sig := <-sigchan:
-			logger.Infof("Consumer caught signal %v: terminating", sig)
+		case <-c.options.ShutdownChannel:
+			logger.Info("Consumer shutting down")
 			run = false
 
 		case ev := <-c.consumer.Events():

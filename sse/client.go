@@ -2,8 +2,6 @@ package sse
 
 import (
 	"os"
-	"os/signal"
-	"syscall"
 
 	"time"
 
@@ -40,10 +38,7 @@ func (c *Client) Subscribe(stream string, handler func(event []byte, data []byte
 	)
 
 	go func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigchan
-		c.shutdownChan <- struct{}{}
+		<-c.shutdownChan
 		c.shouldShutdown = true
 	}()
 
