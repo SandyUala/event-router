@@ -84,7 +84,7 @@ func (c *Consumer) Run() {
 				c.consumer.Unassign()
 			case *confluent.Message:
 				go c.messageHandler.HandleMessage(e.Value, e.Key)
-				go prom.MessagesConsumed.Inc()
+				prom.MessagesConsumed.Inc()
 			case confluent.PartitionEOF:
 				logger.Infof("Reached %v", e)
 			case confluent.Error:

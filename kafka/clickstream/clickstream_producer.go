@@ -66,6 +66,7 @@ func (c *Producer) HandleMessage(message []byte, key []byte) {
 		logger.Error("Error unmarshaling message json: " + err.Error())
 		return
 	}
+	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
 	ints := c.integrations.GetIntegrations(dat.AppId)
 	if ints == nil {
 		logger.Errorf("No integrations returned for appId %s", dat.AppId)
@@ -136,6 +137,7 @@ func (c *Producer) handleEvents() {
 							return
 						}
 						prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Inc()
+						prom.BytesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Add(float64(len(m.Value)))
 						if c.config.CassandraEnabled {
 							// Send the message ID to cassandra
 							if err := c.config.Cassandra.InsertMessage(dat.MessageID, *m.TopicPartition.Topic+"-confirmed"); err != nil {

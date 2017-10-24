@@ -8,9 +8,11 @@ import (
 
 	"encoding/json"
 
+	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/astronomerio/clickstream-event-router/s3"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type RetryProducer struct {
@@ -66,15 +68,21 @@ func (c *RetryProducer) HandleMessage(message []byte, key []byte) {
 		Key:   key,
 		Value: dat.Message,
 	}
+	go func() {
+		m := &Message{}
+		json.Unmarshal(dat.Message, &m)
+		prom.BytesRetried.With(prometheus.Labels{"appId": m.AppId, "integration": dat.Integration}).Add(float64(len(dat.Message)))
+		prom.MessagesRetried.With(prometheus.Labels{"appId": m.AppId, "integration": dat.Integration}).Inc()
+	}()
 
 }
 
-func (c *RetryProducer) sendToS3(rertryMessagae *RetryMessage) {
+func (c *RetryProducer) sendToS3(retryMessage *RetryMessage) {
 	logger := log.WithField("function", "sendToS3")
 	logger.Debug("Entered sendToS3")
 	// Get message ID
 	dat := &Message{}
-	if err := json.Unmarshal(rertryMessagae.Message, &dat); err != nil {
+	if err := json.Unmarshal(retryMessage.Message, &dat); err != nil {
 		logger.Error("Error unmarshaling message json: " + err.Error())
 		return
 	}
@@ -85,9 +93,11 @@ func (c *RetryProducer) sendToS3(rertryMessagae *RetryMessage) {
 	}
 	key += dat.MessageID
 	// Send to s3
-	if err := c.s3Client.SendToS3(&c.config.RetryS3Bucket, &key, rertryMessagae.Message); err != nil {
+	if err := c.s3Client.SendToS3(&c.config.RetryS3Bucket, &key, retryMessage.Message); err != nil {
 		logger.Error("Error sending message to S3: " + err.Error())
 	}
+	prom.MessagesUploadedToS3.With(prometheus.Labels{"appId": dat.AppId, "integration": retryMessage.Integration}).Inc()
+	prom.BytesUploadedToS3.With(prometheus.Labels{"appId": dat.AppId, "integration": retryMessage.Integration}).Add(float64(len(retryMessage.Message)))
 }
 
 func (c *RetryProducer) handleEvents() {
