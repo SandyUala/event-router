@@ -83,7 +83,7 @@ func (c *Consumer) Run() {
 				logger.Infof("Revoking Partition %v", e)
 				c.consumer.Unassign()
 			case *confluent.Message:
-				go c.messageHandler.HandleMessage(e.Value, e.Key)
+				c.messageHandler.HandleMessage(e.Value, e.Key)
 				prom.MessagesConsumed.Inc()
 			case confluent.PartitionEOF:
 				logger.Infof("Reached %v", e)
