@@ -9,6 +9,7 @@ It has its own internal cache of enabled integrations for each application ID.  
 ### Usage:
 
 ```
+$ event-router
 event-router will route incoming events from analytics.js to the correct integration
 
 Usage:
@@ -24,6 +25,20 @@ Flags:
   -h, --help          help for event-router
 
 Use "event-router [command] --help" for more information about a command.
+```
+```
+$ event-router start
+Starts the event-router
+
+Usage:
+  event-router start [flags]
+
+Flags:
+  -h, --help    help for start
+      --retry   enables retry logic
+
+Global Flags:
+      --disable-sse   disables SSE client
 ```
 
 ### Environment Variables
