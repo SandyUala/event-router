@@ -6,6 +6,8 @@ It has its own internal cache of enabled integrations for each application ID.  
 
 ~~The cache by default has a 5 min TTL that can be changed or disabled.  This ensures that the cache will always have up to date information in case a broadcast message is missed.~~ Not merged in yet.
 
+Clickstream Event-Router requires several environment varialbes.  It will print out the required env variables if they are not specified.
+
 ### Usage:
 
 ```
