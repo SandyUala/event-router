@@ -36,7 +36,7 @@ var (
 func init() {
 	RootCmd.AddCommand(StartCmd)
 	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
-	StartCmd.Flags().BoolVar(&DisableCacheTTL, "disable-cache-ttl", false, "enable cache ttl")
+	StartCmd.Flags().BoolVar(&DisableCacheTTL, "disable-cache-ttl", false, "disables cache ttl")
 }
 
 func start(cmd *cobra.Command, args []string) {

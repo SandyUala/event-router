@@ -4,7 +4,7 @@ Clickstream Event Router is responsible for routing clickstream events to the ap
 
 It has its own internal cache of enabled integrations for each application ID.  If the cache does not have an entry for an app ID, it retrieves the enabled integrations from Houston.  Event Router also subscribes to a broadcast channel from Houston to get integration change events.  When an event is received by Event Router, it will update the app IDs integrations with the latest from Houston.
 
-~~The cache by default has a 5 min TTL that can be changed or disabled.  This ensures that the cache will always have up to date information in case a broadcast message is missed.~~ Not merged in yet.
+The cache by default has a 5 min TTL that can be changed or disabled.  This ensures that the cache will always have up to date information in case a broadcast message is missed.
 
 Clickstream Event-Router requires several environment varialbes.  It will print out the required env variables if they are not specified.
 
@@ -36,6 +36,7 @@ Usage:
   event-router start [flags]
 
 Flags:
+      --disable-cache-ttl   disables cache ttl
   -h, --help    help for start
       --retry   enables retry logic
 
@@ -90,3 +91,9 @@ Global Flags:
  * `ER_HOUSTON_PASSWORD`
    * Required if `ER_HOUSTON_API_KEY` is not specified
    * Password to Houston user account
+ * `ER_CACHE_TTL_MIN`
+   * Optional, Default: `5`
+   * Cache TTL in minutes
+ * `ER_DISABLE_CACHE_TTL`
+   * Optional, Default: `false`
+   * If set to true, disables the TTL cache.  Overridden by the `--disable-cache-ttl` flag.
