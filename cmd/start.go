@@ -49,23 +49,23 @@ func start(cmd *cobra.Command, args []string) {
 	apiClient := api.NewClient()
 	apiClient.AppendRouteHandler(v1.NewPromHandler())
 	// Setup api debug level (for gin logging)
-	api.Debug = config.GetBool(config.DebugEnvLabel)
+	api.Debug = config.GetBool(config.Debug)
 
-	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
-	topic := config.GetString(config.TopicEnvLabel)
+	bootstrapServers := config.GetString(config.BootstrapServers)
+	topic := config.GetString(config.KafkaIngestionTopic)
 
 	// HTTP Client
 	httpClient := pkg.NewHTTPClient()
 
 	// Houston Client
-	houstonClient := houston.NewHoustonClient(httpClient, config.GetString(config.HoustonAPIURLEnvLabel))
+	houstonClient := houston.NewHoustonClient(httpClient, config.GetString(config.HoustonAPIURL))
 
 	// Integration Client
 	integrationClient := integrations.NewClient(houstonClient)
 
 	// SSE Client
 	if !DisableSSE {
-		sseClient := sse.NewSSEClient(config.GetString(config.SSEURLEnvLabel), houstonClient)
+		sseClient := sse.NewSSEClient(config.GetString(config.SSEURL), houstonClient)
 		// Register our integrations event listener with the SSE Client
 		sseClient.Subscribe("appChanges", integrationClient.EventListener)
 	}
@@ -74,11 +74,11 @@ func start(cmd *cobra.Command, args []string) {
 	clickstreamProducerOptions := &clickstream.ProducerConfig{
 		BootstrapServers: bootstrapServers,
 		Integrations:     integrationClient,
-		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMSEvnLabel),
-		FlushTimeout:     config.GetInt(config.KafkaProducerFlushTimeoutMSEnvLabel),
-		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3BucketEnvLabel),
-		RetryTopic:       config.GetString(config.ClickstreamRetryTopicEnvLabel),
-		S3PathPrefix:     config.GetString(config.S3PathPrefixEnvLabel),
+		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMS),
+		FlushTimeout:     config.GetInt(config.KafkaProducerFlushTimeoutMS),
+		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3Bucket),
+		RetryTopic:       config.GetString(config.ClickstreamRetryTopic),
+		S3PathPrefix:     config.GetString(config.ClickstreamRetryS3PathPrefix),
 		MasterTopic:      topic,
 	}
 	clickstreamProducer, err := clickstream.NewProducer(clickstreamProducerOptions)
@@ -90,7 +90,7 @@ func start(cmd *cobra.Command, args []string) {
 	// Clickstream Consumer
 	clickstreamConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 		BootstrapServers: bootstrapServers,
-		GroupID:          config.GetString(config.GroupIDEnvLabel),
+		GroupID:          config.GetString(config.KafkaGroupID),
 		Topic:            topic,
 		MessageHandler:   clickstreamProducer,
 	})
@@ -132,7 +132,7 @@ func start(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		// Create clickstream retry producer
-		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetriesEnvLabel), s3Client)
+		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetries), s3Client)
 		if err != nil {
 			logger.Error(err)
 			os.Exit(1)
@@ -141,7 +141,7 @@ func start(cmd *cobra.Command, args []string) {
 		// Create clickstream retry consumer
 		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
 			BootstrapServers: bootstrapServers,
-			GroupID:          config.GetString(config.GroupIDEnvLabel),
+			GroupID:          config.GetString(config.KafkaGroupID),
 			Topic:            clickstreamProducerOptions.RetryTopic,
 			MessageHandler:   clickstreamRetryProducer,
 		})
@@ -155,7 +155,7 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")
-	if err := apiClient.Serve(config.GetString(config.ServePortEnvLabel)); err != nil {
+	if err := apiClient.Serve(config.GetString(config.ServePort)); err != nil {
 		logger.Error(err)
 	}
 	logger.Debug("Exiting event-router")

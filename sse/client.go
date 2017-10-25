@@ -52,7 +52,7 @@ func (c *Client) Subscribe(stream string, handler func(event []byte, data []byte
 			// Get the auth token.  We get it before we start listening because if the
 			// auth token has become invalidated, we need to get a new one.
 			// Check if we are using one from env variable or logging in.
-			auth := config.GetString(config.HoustonAPIKeyEnvLabel)
+			auth := config.GetString(config.HoustonAPIKey)
 			if len(auth) == 0 {
 				// Get the auth token
 				a, err := c.houstonClient.GetAuthorizationKey()
