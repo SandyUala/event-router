@@ -177,7 +177,7 @@ func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, er
 
 func (c *Client) GetAuthorizationKey() (string, error) {
 	// Check for a houston api key
-	houstonAPIKey := config.GetString(config.HoustonAPIKeyEnvLabel)
+	houstonAPIKey := config.GetString(config.HoustonAPIKey)
 	var authKey string
 	if len(houstonAPIKey) != 0 {
 		authKey = houstonAPIKey
@@ -205,8 +205,8 @@ func (c *Client) getToken() (string, error) {
 		}
 	}
 	query := fmt.Sprintf(createToken,
-		config.GetString(config.HoustonUserNameEnvLabel),
-		config.GetString(config.HoustonPasswordEnvLabel))
+		config.GetString(config.HoustonUserName),
+		config.GetString(config.HoustonPassword))
 	houstonResponse, err := c.queryHouston(query, "")
 	if err != nil {
 		return "", errors.Wrap(err, "Error creating token")
