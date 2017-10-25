@@ -62,7 +62,7 @@ func mock(cmd *cobra.Command, args []string) {
 	apiClient := api.NewClient()
 	apiClient.AppendRouteHandler(v1.NewPromHandler())
 	// Setup api debug level (for gin logging)
-	api.Debug = config.GetBool(config.DebugEnvLabel)
+	api.Debug = config.GetBool(config.Debug)
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topic := config.GetString(config.TopicEnvLabel)
@@ -80,10 +80,13 @@ func mock(cmd *cobra.Command, args []string) {
 		values[value[0]] = value[1]
 	}
 
+	// Shutdown Channel
+	shutdownChannel := make(chan struct{})
+
 	mockHoustonClient := &houston.MockClient{
 		Integrations: values,
 	}
-	integration := integrations.NewClient(mockHoustonClient)
+	integration := integrations.NewClient(mockHoustonClient, shutdownChannel)
 
 	// SSE Client
 	if !DisableSSE {

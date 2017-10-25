@@ -14,7 +14,7 @@ const (
 	// Environment Variable Prefix
 	Prefix = "ER"
 
-	DebugEnvLabel = "DEBUG"
+	Debug = "DEBUG"
 
 	BootstrapServersEnvLabel              = "BOOTSTRAP_SERVERS"
 	ServePortEnvLabel                     = "SERVE_PORT"
@@ -27,6 +27,8 @@ const (
 	ClickstreamRetryTopicEnvLabel         = "CLICKSTREAM_RETRY_TOPIC"
 	ClickstreamRetryS3BucketEnvLabel      = "CLICKSTREAM_RETRY_S3_BUCKET"
 	S3PathPrefixEnvLabel                  = "S3_PATH_PREFIX"
+	CacheTTLMin                           = "CACHE_TTL_MIN"
+	DisableCacheTTL                       = "DISABLE_CACHE_TTL"
 
 	HoustonAPIURLEnvLabel   = "HOUSTON_API_URL"
 	HoustonAPIKeyEnvLabel   = "HOUSTON_API_KEY"
@@ -55,7 +57,7 @@ type InitOptions struct {
 	EnableRetry bool
 }
 
-func Initalize(opts *InitOptions) {
+func Initialize(opts *InitOptions) {
 	viper.SetEnvPrefix(Prefix)
 	viper.AutomaticEnv()
 
@@ -74,7 +76,7 @@ func Initalize(opts *InitOptions) {
 	}
 
 	// Debug value
-	debug = viper.GetBool(DebugEnvLabel)
+	debug = viper.GetBool(Debug)
 
 }
 
@@ -90,12 +92,18 @@ func GetInt(cfg string) int {
 	return viper.GetInt(cfg)
 }
 
+func SetBool(cfg string, value bool) {
+	viper.Set(cfg, value)
+}
+
 func setDefaults() {
-	viper.SetDefault(DebugEnvLabel, false)
+	viper.SetDefault(Debug, false)
 	viper.SetDefault(ServePortEnvLabel, "8080")
 	viper.SetDefault(KafkaProducerFlushTimeoutMSEnvLabel, 1000)
 	viper.SetDefault(KafkaProducerMessageTimeoutMSEvnLabel, 5000)
 	viper.SetDefault(MaxRetriesEnvLabel, 2)
+	viper.SetDefault(CacheTTLMin, 5)
+	viper.SetDefault(DisableCacheTTL, false)
 }
 
 func verifyRequiredEnvVars() error {

@@ -29,12 +29,14 @@ var (
 		Run:   start,
 	}
 
-	EnableRetry = false
+	EnableRetry     = false
+	DisableCacheTTL = false
 )
 
 func init() {
 	RootCmd.AddCommand(StartCmd)
 	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
+	StartCmd.Flags().BoolVar(&DisableCacheTTL, "disable-cache-ttl", false, "enable cache ttl")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -49,7 +51,11 @@ func start(cmd *cobra.Command, args []string) {
 	apiClient := api.NewClient()
 	apiClient.AppendRouteHandler(v1.NewPromHandler())
 	// Setup api debug level (for gin logging)
-	api.Debug = config.GetBool(config.DebugEnvLabel)
+	api.Debug = config.GetBool(config.Debug)
+	// Disable cache TTL if flag passed
+	if DisableCacheTTL {
+		config.SetBool(config.DisableCacheTTL, true)
+	}
 
 	bootstrapServers := config.GetString(config.BootstrapServersEnvLabel)
 	topic := config.GetString(config.TopicEnvLabel)
@@ -64,7 +70,7 @@ func start(cmd *cobra.Command, args []string) {
 	houstonClient := houston.NewHoustonClient(httpClient, config.GetString(config.HoustonAPIURLEnvLabel))
 
 	// Integration Client
-	integrationClient := integrations.NewClient(houstonClient)
+	integrationClient := integrations.NewClient(houstonClient, shutdownChannel)
 
 	// SSE Client
 	if !DisableSSE {
