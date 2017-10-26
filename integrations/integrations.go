@@ -114,6 +114,6 @@ func (c *Client) EventListener(eventRaw, dataRaw []byte) {
 	if event == "clickstream" {
 		prom.SSEClickstreamMessagesReceived.Inc()
 		c.UpdateIntegrationsForApp(data.AppID)
-		log.Infof("AppID %s integrations updated ")
+		log.Infof("AppID %s integrations updated", data.AppID)
 	}
 }

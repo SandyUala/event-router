@@ -8,6 +8,8 @@ import (
 
 	"encoding/json"
 
+	"time"
+
 	"github.com/astronomerio/clickstream-event-router/config"
 	"github.com/astronomerio/clickstream-event-router/pkg"
 	"github.com/pkg/errors"
@@ -28,6 +30,11 @@ type Client struct {
 type HoustonResponse struct {
 	Raw  *http.Response
 	Body []byte
+}
+
+type HoustonToken struct {
+	authToken string
+	expDate   time.Time
 }
 
 // NewHoustonClient returns a new Client with the logger and HTTP client setup.
@@ -92,7 +99,7 @@ var (
 	query sources {
 	  sources(id:"%s") {
 		clickstream{
-			name
+	      name
 		  topic: code
 		  enabled
 		}

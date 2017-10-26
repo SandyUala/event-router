@@ -67,6 +67,9 @@ func mock(cmd *cobra.Command, args []string) {
 	bootstrapServers := config.GetString(config.BootstrapServers)
 	topic := config.GetString(config.KafkaIngestionTopic)
 
+	// Shutdown Channel
+	shutdownChannel := make(chan struct{})
+
 	// Parse the args
 	if len(args) == 0 {
 		logger.Error("Arguments must be supplied in the format '<name>:<code>,<name>:<code>'\nExample:  'S3 Event Logs:s3-event-logs")
@@ -88,7 +91,7 @@ func mock(cmd *cobra.Command, args []string) {
 	// SSE Client
 	if !DisableSSE {
 		sseClient := sse.NewSSEClient(config.GetString(config.SSEURL),
-			mockHoustonClient)
+			mockHoustonClient, shutdownChannel)
 		sseClient.Subscribe("clickstream", integration.EventListener)
 	}
 
