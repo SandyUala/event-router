@@ -71,9 +71,7 @@ func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "Error getting integrations")
 		}
-		if integrations != nil {
-			integrationsMap.Put(appId, integrations)
-		}
+		integrationsMap.Put(appId, integrations)
 		syncMap[appId].Unlock()
 	}
 	return integrations, nil
@@ -85,7 +83,7 @@ func (c *Client) getIntegrationsFromHouston(appId string) (*map[string]string, e
 		log.Error(err)
 		return nil, err
 	}
-	return &integrations, nil
+	return integrations, nil
 }
 
 func (c *Client) UpdateIntegrationsForApp(appId string) error {
@@ -96,7 +94,7 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 	// Call get on the map to ensure a lock for the API was created
 	integrationsMap.Get(appId)
 	syncMap[appId].Lock()
-	integrationsMap.Put(appId, &ints)
+	integrationsMap.Put(appId, ints)
 	syncMap[appId].Unlock()
 	return nil
 }

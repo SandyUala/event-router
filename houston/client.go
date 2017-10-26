@@ -15,7 +15,7 @@ import (
 )
 
 type HoustonClient interface {
-	GetIntegrations(appId string) (map[string]string, error)
+	GetIntegrations(appId string) (*map[string]string, error)
 	GetAuthorizationKey() (string, error)
 }
 
@@ -120,7 +120,7 @@ var (
 )
 
 // GetIntegrations will get the enabled integrations from Houston
-func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
+func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 	logger := log.WithField("function", "GetIntegrations")
 	logger.WithField("appId", appId).Debug("Entered GetIntegrations")
 
@@ -145,7 +145,7 @@ func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
 			}
 		}
 	}
-	return integrationsMap, nil
+	return &integrationsMap, nil
 }
 
 func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, error) {

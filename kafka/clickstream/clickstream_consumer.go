@@ -42,6 +42,7 @@ func NewConsumer(opts *ConsumerOptions) (*Consumer, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating consumer")
 	}
+
 	return &Consumer{
 		options:        opts,
 		messageHandler: opts.MessageHandler,

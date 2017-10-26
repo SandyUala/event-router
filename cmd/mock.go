@@ -81,7 +81,7 @@ func mock(cmd *cobra.Command, args []string) {
 	}
 
 	mockHoustonClient := &houston.MockClient{
-		Integrations: values,
+		Integrations: &values,
 	}
 	integration := integrations.NewClient(mockHoustonClient)
 
