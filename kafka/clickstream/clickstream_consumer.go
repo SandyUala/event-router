@@ -2,7 +2,6 @@ package clickstream
 
 import (
 	"github.com/astronomerio/clickstream-event-router/kafka"
-	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -84,7 +83,6 @@ func (c *Consumer) Run() {
 					logger.Error(err)
 					break
 				}
-				prom.MessagesConsumed.Inc()
 			case confluent.PartitionEOF:
 				logger.Infof("Reached %v", e)
 			case confluent.Error:

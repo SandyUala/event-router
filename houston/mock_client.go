@@ -8,6 +8,6 @@ func (c *MockClient) GetIntegrations(appId string) (*map[string]string, error) {
 	return c.Integrations, nil
 }
 
-func (c *MockClient) GetAuthorizationKey() (string, error) {
+func (c *MockClient) GetAuthorizationToken() (string, error) {
 	return "", nil
 }

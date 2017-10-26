@@ -3,10 +3,10 @@ package prom
 import "github.com/prometheus/client_golang/prometheus"
 
 var (
-	MessagesConsumed = prometheus.NewCounter(prometheus.CounterOpts{
+	MessagesConsumed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_consumed",
 		Help: "The number of messages consumed",
-	})
+	}, []string{"appId"})
 
 	MessagesProduced = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_produced",

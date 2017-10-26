@@ -62,7 +62,7 @@ func (c *Client) Subscribe(stream string, handler func(event []byte, data []byte
 			auth := config.GetString(config.HoustonAPIKey)
 			if len(auth) == 0 {
 				// Get the auth token
-				a, err := c.houstonClient.GetAuthorizationKey()
+				a, err := c.houstonClient.GetAuthorizationToken()
 				if err != nil {
 					logger.WithField("error", err).Error("Error getting auth token")
 					os.Exit(1)

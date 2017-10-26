@@ -67,13 +67,15 @@ func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 	if integrations == nil {
 		syncMap[appId].Lock()
 		log.Debugf("Populating integrations for appId %s", appId)
-		integrations, err := c.getIntegrationsFromHouston(appId)
+		ints, err := c.getIntegrationsFromHouston(appId)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error getting integrations")
 		}
-		integrationsMap.Put(appId, integrations)
+		integrationsMap.Put(appId, ints)
+		integrations = ints
 		syncMap[appId].Unlock()
 	}
+	//log.WithFields(logrus.Fields{"integrations": integrations, "appId": appId}).Debug("Returning integrations")
 	return integrations, nil
 }
 

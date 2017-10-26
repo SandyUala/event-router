@@ -119,7 +119,7 @@ func start(cmd *cobra.Command, args []string) {
 				return
 			}
 			// Try to get an auth token.  Used as a healthcheck
-			_, err := houstonClient.GetAuthorizationKey()
+			_, err := houstonClient.GetAuthorizationToken()
 			if err != nil {
 				logger.Error(err)
 				// Sleep for 5 seconds

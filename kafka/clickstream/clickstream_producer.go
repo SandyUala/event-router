@@ -80,6 +80,7 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 		return errors.Wrap(err, "Error getting integrations for appID "+dat.AppId)
 	}
 	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
+	prom.MessagesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Inc()
 	//logger.WithFields(logrus.Fields{"intsLen": len(*ints), "appId": dat.AppId}).Debug("Checking integrations")
 	if ints == nil || len(*ints) == 0 {
 		// No integrations found
