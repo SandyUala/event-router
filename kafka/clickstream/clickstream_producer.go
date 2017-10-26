@@ -79,10 +79,13 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 		}
 		return errors.Wrap(err, "Error getting integrations for appID "+dat.AppId)
 	}
-	if ints == nil {
-		logger.Errorf("No integrations returned for appId %s", dat.AppId)
-	}
 	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
+	//logger.WithFields(logrus.Fields{"intsLen": len(*ints), "appId": dat.AppId}).Debug("Checking integrations")
+	if ints == nil || len(*ints) == 0 {
+		// No integrations found
+		prom.MessagesWithNoIntegration.With(prometheus.Labels{"appId": dat.AppId}).Inc()
+		return nil
+	}
 	for name, integration := range *ints {
 		// If the integration name is in the list of integrations from the message,
 		// and the message has it as false, don't send.  If there is no value, don't send
