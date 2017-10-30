@@ -8,6 +8,12 @@
   revision = "8c0e31bfeaa87bd40412ee8a8ba383f5f700ff72"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/astronomerio/sse"
+  packages = ["."]
+  revision = "e57f1d4f3b9fd8ba0a66125e019b3bbf73e467fd"
+
+[[projects]]
   name = "github.com/astronomerio/viper"
   packages = ["."]
   revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
@@ -30,12 +36,6 @@
   packages = ["kafka"]
   revision = "f696f02dcbb04d95b103c5b848bb15f749a996f7"
   version = "v0.11.0"
-
-[[projects]]
-  name = "github.com/davecgh/go-spew"
-  packages = ["spew"]
-  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
-  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -163,12 +163,6 @@
   revision = "e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2"
 
 [[projects]]
-  name = "github.com/r3labs/sse"
-  packages = ["."]
-  revision = "86fcf8fba06da940639f99f1ef748a0b9e5ea55c"
-  version = "1.0.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/shurcooL/go"
   packages = ["ctxhttp"]
@@ -255,6 +249,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8d5706db315e868ac1eac5cb148e0b6405ba8619ad929b38f0d33321cdda9899"
+  inputs-digest = "148ba7721265fda34e2b58e803d732ebdbc59693c20661b779acdd9b68cdda21"
   solver-name = "gps-cdcl"
   solver-version = 1

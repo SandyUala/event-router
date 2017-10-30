@@ -90,8 +90,12 @@ func mock(cmd *cobra.Command, args []string) {
 
 	// SSE Client
 	if !DisableSSE {
-		sseClient := sse.NewSSEClient(config.GetString(config.SSEURL),
+		sseClient, err := sse.NewSSEClient(config.GetString(config.SSEURL),
 			mockHoustonClient, shutdownChannel)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
 		sseClient.Subscribe("clickstream", integration.EventListener)
 	}
 

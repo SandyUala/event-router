@@ -68,9 +68,13 @@ func start(cmd *cobra.Command, args []string) {
 
 	// SSE Client
 	if !DisableSSE {
-		sseClient := sse.NewSSEClient(config.GetString(config.SSEURL), houstonClient, shutdownChannel)
+		sseClient, err := sse.NewSSEClient(config.GetString(config.SSEURL), houstonClient, shutdownChannel)
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
 		// Register our integrations event listener with the SSE Client
-		sseClient.Subscribe("appChanges", integrationClient.EventListener)
+		sseClient.Subscribe("clickstream", integrationClient.EventListener)
 	}
 
 	// Create our clickstreamProducer

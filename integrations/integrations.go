@@ -3,10 +3,9 @@ package integrations
 import (
 	"sync"
 
-	"encoding/json"
-
 	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
+	"github.com/astronomerio/sse"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +20,7 @@ var (
 type Integrations interface {
 	GetIntegrations(appId string) (*map[string]string, error)
 	UpdateIntegrationsForApp(appId string) error
-	EventListener(eventRaw, dataRaw []byte)
+	EventListener(event *sse.Event)
 }
 
 /*
@@ -105,17 +104,10 @@ type SSEMessage struct {
 	AppID string `json:"appId"`
 }
 
-func (c *Client) EventListener(eventRaw, dataRaw []byte) {
+func (c *Client) EventListener(event *sse.Event) {
 	logger := log.WithField("function", "EventListener")
-
-	event := string(eventRaw)
-	data := SSEMessage{}
-	if err := json.Unmarshal(dataRaw, &data); err != nil {
-		logger.Error("Error unmarshaling data")
-	}
-	if event == "clickstream" {
-		prom.SSEClickstreamMessagesReceived.Inc()
-		c.UpdateIntegrationsForApp(data.AppID)
-		log.Infof("AppID %s integrations updated", data.AppID)
-	}
+	appId := string(event.Data)
+	prom.SSEClickstreamMessagesReceived.Inc()
+	c.UpdateIntegrationsForApp(appId)
+	logger.Infof("AppID %s integrations updated", appId)
 }

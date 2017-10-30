@@ -49,6 +49,23 @@ var (
 		ClickstreamRetryTopic,
 		ClickstreamRetryS3Bucket,
 	}
+
+	allEnvs = []string{
+		Debug,
+		BootstrapServers,
+		ServePort,
+		KafkaGroupID,
+		KafkaIngestionTopic,
+		SSEURL,
+		KafkaProducerFlushTimeoutMS,
+		KafkaProducerMessageTimeoutMS,
+		MaxRetries,
+		ClickstreamRetryTopic,
+		ClickstreamRetryS3Bucket,
+		ClickstreamRetryS3PathPrefix,
+		HoustonAPIURL,
+		HoustonUserName,
+	}
 )
 
 type InitOptions struct {
@@ -75,6 +92,9 @@ func Initalize(opts *InitOptions) {
 
 	// Debug value
 	debug = viper.GetBool(Debug)
+
+	// Print out the configs
+	printConfigs()
 
 }
 
@@ -128,4 +148,13 @@ func verifyRequiredEnvVars() error {
 
 func IsDebugEnabled() bool {
 	return debug
+}
+
+func printConfigs() {
+	fmt.Println("Initializing with the following configs:")
+	fmt.Println("========================================")
+	for _, envVar := range allEnvs {
+		fmt.Sprintf("%s_%s = %s\n", Prefix, envVar, GetString(envVar))
+	}
+	fmt.Println("========================================")
 }

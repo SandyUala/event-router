@@ -250,7 +250,7 @@ func (c *Client) queryHouston(query string, authKey string) (houstonResponse, er
 			"Accept": "application/json",
 		},
 	}
-	logger.WithField("query", doOpts.Data).Debug("Querying Houston")
+	logger.Debug("Querying Houston")
 	if len(authKey) != 0 {
 		doOpts.Headers["authorization"] = authKey
 	}
