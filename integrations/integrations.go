@@ -3,6 +3,8 @@ package integrations
 import (
 	"sync"
 
+	"encoding/json"
+
 	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/astronomerio/sse"
@@ -106,8 +108,12 @@ type SSEMessage struct {
 
 func (c *Client) EventListener(event *sse.Event) {
 	logger := log.WithField("function", "EventListener")
-	appId := string(event.Data)
+	message := &SSEMessage{}
+	if err := json.Unmarshal(event.Data, message); err != nil {
+		logger.Error(err)
+		return
+	}
 	prom.SSEClickstreamMessagesReceived.Inc()
-	c.UpdateIntegrationsForApp(appId)
-	logger.Infof("AppID %s integrations updated", appId)
+	c.UpdateIntegrationsForApp(message.AppID)
+	logger.Infof("AppID %s integrations updated", message.AppID)
 }

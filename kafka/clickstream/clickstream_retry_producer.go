@@ -1,9 +1,9 @@
 package clickstream
 
 import (
-	"fmt"
-
 	"encoding/json"
+
+	"reflect"
 
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/astronomerio/clickstream-event-router/s3"
@@ -141,7 +141,7 @@ func (c *RetryProducer) handleEvents() {
 				logger.Error(e.Error())
 
 			default:
-				fmt.Printf("Ignored event: %s\n", e)
+				logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Ignored Event: %v", e)
 			}
 		}
 	}

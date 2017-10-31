@@ -32,6 +32,10 @@ const (
 	HoustonAPIKey   = "HOUSTON_API_KEY"
 	HoustonUserName = "HOUSTON_USERNAME"
 	HoustonPassword = "HOUSTON_PASSWORD"
+
+	// Non Env Variable configs
+	KafakDebug = "KAFKA_DEBUG"
+	Retry      = "RETRY"
 )
 
 var (
@@ -108,6 +112,10 @@ func GetBool(cfg string) bool {
 
 func GetInt(cfg string) int {
 	return viper.GetInt(cfg)
+}
+
+func SetBool(cfg string, val bool) {
+	viper.Set(cfg, val)
 }
 
 func setDefaults() {

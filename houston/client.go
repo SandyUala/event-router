@@ -172,6 +172,7 @@ func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 			}
 		}
 	}
+	logger.WithField("integrations", integrationsMap).Debug("Returning Integrations")
 	return &integrationsMap, nil
 }
 

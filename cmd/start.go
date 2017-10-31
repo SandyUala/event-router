@@ -2,11 +2,16 @@ package cmd
 
 import (
 	"os"
+	"runtime"
 
 	"time"
 
 	"os/signal"
 	"syscall"
+
+	"runtime/pprof"
+
+	"runtime/trace"
 
 	"github.com/astronomerio/clickstream-event-router/api"
 	"github.com/astronomerio/clickstream-event-router/api/v1"
@@ -30,11 +35,15 @@ var (
 	}
 
 	EnableRetry = false
+	StartPPROF  = ""
+	KafkaDebug  = false
 )
 
 func init() {
 	RootCmd.AddCommand(StartCmd)
 	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
+	StartCmd.Flags().StringVarP(&StartPPROF, "pprof", "p", "", "enable pprof and set file location")
+	StartCmd.Flags().BoolVar(&KafkaDebug, "kafka-debug", false, "enable kafka debuging")
 }
 
 func start(cmd *cobra.Command, args []string) {
@@ -45,6 +54,32 @@ func start(cmd *cobra.Command, args []string) {
 	logger := log.WithField("function", "start")
 	logger.Info("Starting event-router")
 
+	if len(StartPPROF) != 0 {
+		if StartPPROF[len(StartPPROF)-1] == '/' {
+			StartPPROF = StartPPROF[:len(StartPPROF)-1]
+		}
+		logger.Info("Enabling Profiling")
+		// CPU Profile
+		f, err := os.Create(StartPPROF + "/cpuprofile.pprof")
+		if err != nil {
+			logger.Fatal(err)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			logger.Fatal(err)
+		}
+		defer pprof.StopCPUProfile()
+
+		// Trace
+		t, err := os.Create(StartPPROF + "/clickstream-event-router.trace")
+		if err != nil {
+			logger.Fatal(err)
+		}
+		if err := trace.Start(t); err != nil {
+			logger.Fatal(err)
+		}
+		defer trace.Stop()
+	}
+
 	// Create our simple web server
 	apiClient := api.NewClient()
 	apiClient.AppendRouteHandler(v1.NewPromHandler())
@@ -53,6 +88,8 @@ func start(cmd *cobra.Command, args []string) {
 
 	bootstrapServers := config.GetString(config.BootstrapServers)
 	topic := config.GetString(config.KafkaIngestionTopic)
+	config.SetBool(config.KafakDebug, KafkaDebug)
+	config.SetBool(config.Retry, EnableRetry)
 
 	// Shutdown Channel
 	shutdownChannel := make(chan struct{})
@@ -167,6 +204,18 @@ func start(cmd *cobra.Command, args []string) {
 	logger.Info("Starting HTTP Server")
 	if err := apiClient.Serve(config.GetString(config.ServePort)); err != nil {
 		logger.Error(err)
+	}
+	if len(StartPPROF) != 0 {
+		// Write out memory heap
+		f, err := os.Create(StartPPROF + "/memoryprofile.pprof")
+		if err != nil {
+			logger.Fatal("could not create memory profile: ", err)
+		}
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			logger.Fatal("could not write memory profile: ", err)
+		}
+		f.Close()
 	}
 	logger.Debug("Exiting event-router")
 }
