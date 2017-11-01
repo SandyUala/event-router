@@ -13,10 +13,12 @@ dep:
 	dep ensure -v
 	dep prune -v
 
-build:
+buildit:
 	go build -tags static -o event-router main.go
 
-install:
+build: staticcheck gosimple buildit
+
+install: staticcheck gosimple
 	go install -tags static
 
 run:

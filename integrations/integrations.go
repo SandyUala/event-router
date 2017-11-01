@@ -117,3 +117,17 @@ func (c *Client) EventListener(event *sse.Event) {
 	c.UpdateIntegrationsForApp(message.AppID)
 	logger.Infof("AppID %s integrations updated", message.AppID)
 }
+
+// Mock Client for testing
+type MockClient struct {
+}
+
+func (c *MockClient) GetIntegrations(appId string) (*map[string]string, error) {
+	return nil, nil
+}
+func (c *MockClient) UpdateIntegrationsForApp(appId string) error {
+	return nil
+}
+func (c *MockClient) EventListener(event *sse.Event) {
+
+}

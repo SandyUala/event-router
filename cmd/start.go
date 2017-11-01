@@ -16,6 +16,7 @@ import (
 	"github.com/astronomerio/clickstream-event-router/api"
 	"github.com/astronomerio/clickstream-event-router/api/v1"
 	"github.com/astronomerio/clickstream-event-router/config"
+	"github.com/astronomerio/clickstream-event-router/deadletterqueue"
 	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/astronomerio/clickstream-event-router/integrations"
 	"github.com/astronomerio/clickstream-event-router/kafka/clickstream"
@@ -121,10 +122,24 @@ func start(cmd *cobra.Command, args []string) {
 		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMS),
 		FlushTimeout:     config.GetInt(config.KafkaProducerFlushTimeoutMS),
 		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3Bucket),
-		RetryTopic:       config.GetString(config.ClickstreamRetryTopic),
 		S3PathPrefix:     config.GetString(config.ClickstreamRetryS3PathPrefix),
 		MasterTopic:      topic,
 		ShutdownChannel:  shutdownChannel,
+	}
+	if EnableRetry {
+		s3Client, err := s3.NewClient()
+		if err != nil {
+			logger.Error(err)
+			os.Exit(1)
+		}
+		dlc := deadletterqueue.NewClient(
+			&deadletterqueue.ClientConfig{
+				S3Bucket:        config.GetString(config.ClickstreamRetryS3Bucket),
+				ShutdownChannel: shutdownChannel,
+				FlushTimeout:    config.GetInt64(config.ClickstreamRetryFlushTimeout),
+				QueueSize:       config.GetInt64(config.ClickstreamRetryMaxQueue),
+			}, s3Client)
+		clickstreamProducerOptions.DeadletterClient = dlc
 	}
 	clickstreamProducer, err := clickstream.NewProducer(clickstreamProducerOptions)
 	if err != nil {
@@ -170,35 +185,6 @@ func start(cmd *cobra.Command, args []string) {
 			}
 		}
 	}()
-
-	// If Retry is enabled, start the consumer and producer
-	if EnableRetry {
-		s3Client, err := s3.NewClient()
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		// Create clickstream retry producer
-		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamProducerOptions, config.GetInt(config.MaxRetries), s3Client)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-
-		// Create clickstream retry consumer
-		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
-			BootstrapServers: bootstrapServers,
-			GroupID:          config.GetString(config.KafkaGroupID),
-			Topic:            clickstreamProducerOptions.RetryTopic,
-			MessageHandler:   clickstreamRetryProducer,
-		})
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		logger.Info("Starting Clickstream Retry Handler")
-		go clickstreamRetryConsumer.Run()
-	}
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")

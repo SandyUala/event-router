@@ -12,7 +12,6 @@ import (
 	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/astronomerio/clickstream-event-router/integrations"
 	"github.com/astronomerio/clickstream-event-router/kafka/clickstream"
-	"github.com/astronomerio/clickstream-event-router/s3"
 	"github.com/astronomerio/clickstream-event-router/sse"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -136,7 +135,6 @@ func mock(cmd *cobra.Command, args []string) {
 		Cassandra:        cassandraClient,
 		CassandraEnabled: cassandraEnabled,
 		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3Bucket),
-		RetryTopic:       config.GetString(config.ClickstreamRetryTopic),
 		S3PathPrefix:     config.GetString(config.ClickstreamRetryS3PathPrefix),
 	}
 	clickstreamProducer, err := clickstream.NewProducer(clickstreamOptions)
@@ -157,34 +155,6 @@ func mock(cmd *cobra.Command, args []string) {
 	}
 	logger.Info("Starting Clickstream Handler")
 	go clickstreamConsumer.Run()
-
-	if EnableRetry {
-		s3Client, err := s3.NewClient()
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		// Create clickstream retry producer
-		clickstreamRetryProducer, err := clickstream.NewRetryProducer(clickstreamOptions, config.GetInt(config.MaxRetries), s3Client)
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-
-		// Create clickstream retry consumer
-		clickstreamRetryConsumer, err := clickstream.NewConsumer(&clickstream.ConsumerOptions{
-			BootstrapServers: bootstrapServers,
-			GroupID:          config.GetString(config.KafkaGroupID),
-			Topic:            clickstreamOptions.RetryTopic,
-			MessageHandler:   clickstreamRetryProducer,
-		})
-		if err != nil {
-			logger.Error(err)
-			os.Exit(1)
-		}
-		logger.Info("Starting Clickstream Retry Handler")
-		go clickstreamRetryConsumer.Run()
-	}
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")

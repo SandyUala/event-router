@@ -3,25 +3,9 @@ package clickstream
 import (
 	"testing"
 
+	"github.com/astronomerio/clickstream-event-router/integrations"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
-
-type MockIntegrationClient struct {
-}
-
-func (c *MockIntegrationClient) GetIntegrations(appId string) *map[string]string {
-	return &map[string]string{
-		"S3 Event": "s3-event",
-	}
-}
-
-func (c *MockIntegrationClient) UpdateIntegrationsForApp(appId string) error {
-	return nil
-}
-
-func (c *MockIntegrationClient) EventListener(eventRaw, dataRaw []byte) {
-
-}
 
 var jsonBlob = `
 {
@@ -31,7 +15,7 @@ var jsonBlob = `
 
 func TestProduce(t *testing.T) {
 	p, _ := NewProducer(&ProducerConfig{
-		Integrations: &MockIntegrationClient{},
+		Integrations: &integrations.MockClient{},
 	})
 
 	message := []byte(jsonBlob)

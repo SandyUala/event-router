@@ -5,8 +5,11 @@ import (
 
 	"reflect"
 
+	"fmt"
+
 	"github.com/astronomerio/clickstream-event-router/cassandra"
 	"github.com/astronomerio/clickstream-event-router/config"
+	"github.com/astronomerio/clickstream-event-router/deadletterqueue"
 	"github.com/astronomerio/clickstream-event-router/integrations"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -32,6 +35,7 @@ type ProducerConfig struct {
 	S3PathPrefix     string
 	MasterTopic      string
 	ShutdownChannel  chan struct{}
+	DeadletterClient *deadletterqueue.Client
 }
 
 type Message struct {
@@ -134,22 +138,17 @@ func (c *Producer) handleEvents() {
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
 					prom.MessagesProducedFailed.Inc()
+					dat := &Message{}
+					if err := json.Unmarshal(m.Value, &dat); err != nil {
+						logger.Error("Error unmarshaling message json: " + err.Error())
+						return
+					}
 					if config.GetBool(config.Retry) {
-						// Send to the retry topic
-						retryMessage := RetryMessage{
-							Integration: *m.TopicPartition.Topic,
-							Message:     m.Value,
-							RetryCount:  1,
-						}
-
-						c.producer.ProduceChannel() <- &kafka.Message{
-							TopicPartition: kafka.TopicPartition{
-								Topic:     &c.config.RetryTopic,
-								Partition: kafka.PartitionAny,
-							},
-							Key:   []byte(m.Key),
-							Value: *retryMessage.ToBytes(),
-						}
+						// Send to retry cache
+						c.config.DeadletterClient.AddToQueue(&deadletterqueue.QueueObject{
+							Key:  fmt.Sprintf("%s/%s", dat.AppId, m.TopicPartition.Topic),
+							Data: m.Value,
+						})
 					}
 				} else {
 					go func() {

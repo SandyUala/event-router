@@ -24,9 +24,10 @@ const (
 	KafkaProducerFlushTimeoutMS   = "KAFKA_PRODUCER_FLUSH_TIMEOUT_MS"
 	KafkaProducerMessageTimeoutMS = "KAFKA_PRODUCER_MESSAGE_TIMEOUT_MS"
 	MaxRetries                    = "MAX_RETRIES"
-	ClickstreamRetryTopic         = "CLICKSTREAM_RETRY_TOPIC"
 	ClickstreamRetryS3Bucket      = "CLICKSTREAM_RETRY_S3_BUCKET"
 	ClickstreamRetryS3PathPrefix  = "CLICKSTREAM_RETRY_S3_PATH_PREFIX"
+	ClickstreamRetryFlushTimeout  = "CLICKSTREAM_RETRY_TIMEOUT"
+	ClickstreamRetryMaxQueue      = "CLICKSTREAM_RETRY_MAX_QUEUE"
 
 	HoustonAPIURL   = "HOUSTON_API_URL"
 	HoustonAPIKey   = "HOUSTON_API_KEY"
@@ -50,8 +51,9 @@ var (
 	}
 
 	retryRequiredEnvs = []string{
-		ClickstreamRetryTopic,
 		ClickstreamRetryS3Bucket,
+		ClickstreamRetryFlushTimeout,
+		ClickstreamRetryMaxQueue,
 	}
 
 	allEnvs = []string{
@@ -64,7 +66,6 @@ var (
 		KafkaProducerFlushTimeoutMS,
 		KafkaProducerMessageTimeoutMS,
 		MaxRetries,
-		ClickstreamRetryTopic,
 		ClickstreamRetryS3Bucket,
 		ClickstreamRetryS3PathPrefix,
 		HoustonAPIURL,
@@ -112,6 +113,10 @@ func GetBool(cfg string) bool {
 
 func GetInt(cfg string) int {
 	return viper.GetInt(cfg)
+}
+
+func GetInt64(cfg string) int64 {
+	return viper.GetInt64(cfg)
 }
 
 func SetBool(cfg string, val bool) {
@@ -162,7 +167,7 @@ func printConfigs() {
 	fmt.Println("Initializing with the following configs:")
 	fmt.Println("========================================")
 	for _, envVar := range allEnvs {
-		fmt.Sprintf("%s_%s = %s\n", Prefix, envVar, GetString(envVar))
+		fmt.Printf("%s_%s = %s\n", Prefix, envVar, GetString(envVar))
 	}
 	fmt.Println("========================================")
 }
