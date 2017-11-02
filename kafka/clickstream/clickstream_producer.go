@@ -133,7 +133,7 @@ func (c *Producer) handleEvents() {
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
-					prom.MessagesProducedFailed.Inc()
+					prom.MessagesProducedFailed.With(prometheus.Labels{"integration": *m.TopicPartition.Topic}).Inc()
 					if config.GetBool(config.Retry) {
 						// Send to the retry topic
 						retryMessage := RetryMessage{
