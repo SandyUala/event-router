@@ -73,11 +73,10 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	}
 	ints, err := c.integrations.GetIntegrations(dat.AppId)
 	if err != nil {
-		// We had an error connecting to Houston.  Put the message back onto the main
-		// topic so we don't lose it
+		// We had an error connecting to Houston.  Send the message to the retry topic
 		c.producer.ProduceChannel() <- &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
-				Topic:     &c.config.MasterTopic,
+				Topic:     &c.config.RetryTopic,
 				Partition: kafka.PartitionAny,
 			},
 			Key:   key,

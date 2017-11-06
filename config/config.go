@@ -47,10 +47,10 @@ var (
 		KafkaIngestionTopic,
 		KafkaGroupID,
 		SSEURL,
+		ClickstreamRetryTopic,
 	}
 
 	retryRequiredEnvs = []string{
-		ClickstreamRetryTopic,
 		ClickstreamRetryS3Bucket,
 	}
 
