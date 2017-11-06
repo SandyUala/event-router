@@ -1,7 +1,10 @@
 package clickstream
 
 import (
+	"reflect"
+
 	"github.com/astronomerio/clickstream-event-router/kafka"
+	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,6 +36,7 @@ func NewConsumer(opts *ConsumerOptions) (*Consumer, error) {
 		"go.events.channel.enable":        true,
 		"go.application.rebalance.enable": true,
 		"enable.auto.commit":              true,
+		"statistics.interval.ms":          500,
 		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"}})
 
 	if err != nil {
@@ -87,6 +91,10 @@ func (c *Consumer) Run() {
 				logger.Infof("Reached %v", e)
 			case confluent.Error:
 				logger.Error(e.Error())
+			case *confluent.Stats:
+				go prom.HandleKafkaStats(e, "consumer")
+			default:
+				logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Consumer Ignored Event: %v", e)
 			}
 		}
 	}

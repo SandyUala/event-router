@@ -12,19 +12,20 @@ import (
 	"github.com/astronomerio/clickstream-event-router/deadletterqueue"
 	"github.com/astronomerio/clickstream-event-router/integrations"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Producer struct {
-	producer     *kafka.Producer
+	producer     *confluent.Producer
 	integrations integrations.Integrations
 	config       *ProducerConfig
 }
 
 type ProducerConfig struct {
 	BootstrapServers string
+	GroupID          string
 	Integrations     integrations.Integrations
 	MessageTimeout   int
 	FlushTimeout     int
@@ -45,15 +46,21 @@ type Message struct {
 }
 
 func NewProducer(cfg *ProducerConfig) (*Producer, error) {
-	cfgMap := &kafka.ConfigMap{
-		"bootstrap.servers":     cfg.BootstrapServers,
-		"message.timeout.ms":    cfg.MessageTimeout,
-		"request.required.acks": -1,
+	cfgMap := &confluent.ConfigMap{
+		"bootstrap.servers":               cfg.BootstrapServers,
+		"group.id":                        cfg.GroupID,
+		"session.timeout.ms":              6000,
+		"go.events.channel.enable":        true,
+		"go.application.rebalance.enable": true,
+		"statistics.interval.ms":          500,
+		"message.timeout.ms":              cfg.MessageTimeout,
+		"request.required.acks":           -1,
+		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"},
 	}
 	if config.GetBool(config.KafakDebug) {
 		cfgMap.SetKey("debug", "protocol,topic,msg")
 	}
-	p, err := kafka.NewProducer(cfgMap)
+	p, err := confluent.NewProducer(cfgMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating kafka messageHandler")
 	}
@@ -78,10 +85,10 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	ints, err := c.integrations.GetIntegrations(dat.AppId)
 	if err != nil {
 		// We had an error connecting to Houston.  Send the message to the retry topic
-		c.producer.ProduceChannel() <- &kafka.Message{
-			TopicPartition: kafka.TopicPartition{
+		c.producer.ProduceChannel() <- &confluent.Message{
+			TopicPartition: confluent.TopicPartition{
 				Topic:     &c.config.RetryTopic,
-				Partition: kafka.PartitionAny,
+				Partition: confluent.PartitionAny,
 			},
 			Key:   key,
 			Value: message,
@@ -102,10 +109,10 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 		if ok, intEnabled := dat.Integrations[name]; ok && !intEnabled {
 			continue
 		}
-		c.producer.ProduceChannel() <- &kafka.Message{
-			TopicPartition: kafka.TopicPartition{
+		c.producer.ProduceChannel() <- &confluent.Message{
+			TopicPartition: confluent.TopicPartition{
 				Topic:     &integration,
-				Partition: kafka.PartitionAny,
+				Partition: confluent.PartitionAny,
 			},
 			Key:   key,
 			Value: message,
@@ -132,7 +139,7 @@ func (c *Producer) handleEvents() {
 			run = false
 		case ev := <-c.producer.Events():
 			switch e := ev.(type) {
-			case *kafka.Message:
+			case *confluent.Message:
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
@@ -166,11 +173,13 @@ func (c *Producer) handleEvents() {
 						}
 					}()
 				}
-			case *kafka.Error:
+			case *confluent.Error:
 				logger.Error(e.Error())
+			case *confluent.Stats:
+				go prom.HandleKafkaStats(e, "producer")
 
 			default:
-				logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Ignored Event: %v", e)
+				logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Producer Ignored Event: %v", e)
 			}
 		}
 	}
