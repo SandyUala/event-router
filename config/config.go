@@ -24,6 +24,7 @@ const (
 	KafkaProducerFlushTimeoutMS   = "KAFKA_PRODUCER_FLUSH_TIMEOUT_MS"
 	KafkaProducerMessageTimeoutMS = "KAFKA_PRODUCER_MESSAGE_TIMEOUT_MS"
 	MaxRetries                    = "MAX_RETRIES"
+	RetryTopic                    = "RETRY_TOPIC"
 	ClickstreamRetryS3Bucket      = "CLICKSTREAM_RETRY_S3_BUCKET"
 	ClickstreamRetryS3PathPrefix  = "CLICKSTREAM_RETRY_S3_PATH_PREFIX"
 	ClickstreamRetryFlushTimeout  = "CLICKSTREAM_RETRY_TIMEOUT"
@@ -48,6 +49,7 @@ var (
 		KafkaIngestionTopic,
 		KafkaGroupID,
 		SSEURL,
+		RetryTopic,
 	}
 
 	retryRequiredEnvs = []string{

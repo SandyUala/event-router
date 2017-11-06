@@ -121,6 +121,7 @@ func start(cmd *cobra.Command, args []string) {
 		Integrations:     integrationClient,
 		MessageTimeout:   config.GetInt(config.KafkaProducerMessageTimeoutMS),
 		FlushTimeout:     config.GetInt(config.KafkaProducerFlushTimeoutMS),
+		RetryTopic:       config.GetString(config.RetryTopic),
 		RetryS3Bucket:    config.GetString(config.ClickstreamRetryS3Bucket),
 		S3PathPrefix:     config.GetString(config.ClickstreamRetryS3PathPrefix),
 		MasterTopic:      topic,

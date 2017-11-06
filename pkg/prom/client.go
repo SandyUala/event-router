@@ -18,10 +18,10 @@ var (
 		Help: "The number of clickstream message received by SSE client",
 	})
 
-	MessagesProducedFailed = prometheus.NewCounter(prometheus.CounterOpts{
+	MessagesProducedFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_produced_failed",
 		Help: "The number of messages produced that failed to send",
-	})
+	}, []string{"integration"})
 
 	MessagesRetried = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_retried",
