@@ -162,7 +162,7 @@ func printConfigs() {
 	fmt.Println("Initializing with the following configs:")
 	fmt.Println("========================================")
 	for _, envVar := range allEnvs {
-		fmt.Sprintf("%s_%s = %s\n", Prefix, envVar, GetString(envVar))
+		fmt.Printf("%s_%s = %s\n", Prefix, envVar, GetString(envVar))
 	}
 	fmt.Println("========================================")
 }
