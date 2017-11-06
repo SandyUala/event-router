@@ -5,6 +5,9 @@ import (
 
 	"encoding/json"
 
+	"time"
+
+	"github.com/astronomerio/clickstream-event-router/config"
 	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/astronomerio/sse"
@@ -17,6 +20,7 @@ var (
 	integrationsMap = NewMap()
 	syncMap         = make(map[string]*sync.RWMutex)
 	globalLock      sync.Mutex
+	cacheTimer      time.Timer
 )
 
 type Integrations interface {
@@ -57,10 +61,44 @@ func (m *Map) Put(key string, value *map[string]string) {
 
 type Client struct {
 	houstonClient houston.HoustonClient
+	shutdownChan  chan struct{}
 }
 
-func NewClient(houstonClient houston.HoustonClient) *Client {
-	return &Client{houstonClient: houstonClient}
+func NewClient(houstonClient houston.HoustonClient, shutdownChan chan struct{}) *Client {
+	client := &Client{
+		houstonClient: houstonClient,
+		shutdownChan:  shutdownChan,
+	}
+	if !config.GetBool(config.DisableCacheTTL) {
+		client.StartTTL()
+	}
+	return client
+}
+
+func (c *Client) StartTTL() {
+	ttl := config.GetInt(config.CacheTTLMin)
+	log.Infof("Setting Integration Cache TTL to %sm", ttl)
+	timer := time.NewTimer(time.Minute * time.Duration(ttl))
+	go func() {
+		for {
+			select {
+			case <-c.shutdownChan:
+				return
+			case <-timer.C:
+				c.resetCache()
+			}
+		}
+	}()
+}
+
+func (c *Client) resetCache() {
+	log.Debug("Resetting Integration Cache")
+	// Get a global lock so we can kill the cache
+	globalLock.Lock()
+	defer globalLock.Unlock()
+	integrationsMap = NewMap()
+	// Empty the sync map as well, remove stale app ids
+	syncMap = make(map[string]*sync.RWMutex)
 }
 
 func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {

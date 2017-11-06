@@ -85,7 +85,7 @@ func mock(cmd *cobra.Command, args []string) {
 	mockHoustonClient := &houston.MockClient{
 		Integrations: &values,
 	}
-	integration := integrations.NewClient(mockHoustonClient)
+	integration := integrations.NewClient(mockHoustonClient, shutdownChannel)
 
 	// SSE Client
 	if !DisableSSE {

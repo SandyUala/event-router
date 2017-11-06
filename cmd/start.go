@@ -35,14 +35,16 @@ var (
 		Run:   start,
 	}
 
-	EnableRetry = false
-	StartPPROF  = ""
-	KafkaDebug  = false
+	DisableCacheTTL = false
+	EnableRetry     = false
+	StartPPROF      = ""
+	KafkaDebug      = false
 )
 
 func init() {
 	RootCmd.AddCommand(StartCmd)
 	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
+	StartCmd.Flags().BoolVar(&DisableCacheTTL, "disable-cache-ttl", false, "disables cache ttl")
 	StartCmd.Flags().StringVarP(&StartPPROF, "pprof", "p", "", "enable pprof and set file location")
 	StartCmd.Flags().BoolVar(&KafkaDebug, "kafka-debug", false, "enable kafka debuging")
 }
@@ -87,6 +89,11 @@ func start(cmd *cobra.Command, args []string) {
 	// Setup api debug level (for gin logging)
 	api.Debug = config.GetBool(config.Debug)
 
+	// Disable cache TTL if flag passed
+	if DisableCacheTTL {
+		config.SetBool(config.DisableCacheTTL, true)
+	}
+
 	bootstrapServers := config.GetString(config.BootstrapServers)
 	topic := config.GetString(config.KafkaIngestionTopic)
 	config.SetBool(config.KafakDebug, KafkaDebug)
@@ -102,7 +109,7 @@ func start(cmd *cobra.Command, args []string) {
 	houstonClient := houston.NewHoustonClient(httpClient, config.GetString(config.HoustonAPIURL))
 
 	// Integration Client
-	integrationClient := integrations.NewClient(houstonClient)
+	integrationClient := integrations.NewClient(houstonClient, shutdownChannel)
 
 	// SSE Client
 	if !DisableSSE {

@@ -29,6 +29,8 @@ const (
 	ClickstreamRetryS3PathPrefix  = "CLICKSTREAM_RETRY_S3_PATH_PREFIX"
 	ClickstreamRetryFlushTimeout  = "CLICKSTREAM_RETRY_TIMEOUT"
 	ClickstreamRetryMaxQueue      = "CLICKSTREAM_RETRY_MAX_QUEUE"
+	CacheTTLMin                   = "CACHE_TTL_MIN"
+	DisableCacheTTL               = "DISABLE_CACHE_TTL"
 
 	HoustonAPIURL   = "HOUSTON_API_URL"
 	HoustonAPIKey   = "HOUSTON_API_KEY"
@@ -79,7 +81,7 @@ type InitOptions struct {
 	EnableRetry bool
 }
 
-func Initalize(opts *InitOptions) {
+func Initialize(opts *InitOptions) {
 	viper.SetEnvPrefix(Prefix)
 	viper.AutomaticEnv()
 
@@ -131,6 +133,8 @@ func setDefaults() {
 	viper.SetDefault(KafkaProducerFlushTimeoutMS, 1000)
 	viper.SetDefault(KafkaProducerMessageTimeoutMS, 5000)
 	viper.SetDefault(MaxRetries, 2)
+	viper.SetDefault(CacheTTLMin, 5)
+	viper.SetDefault(DisableCacheTTL, false)
 }
 
 func verifyRequiredEnvVars() error {
