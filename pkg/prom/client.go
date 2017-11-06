@@ -3,10 +3,10 @@ package prom
 import "github.com/prometheus/client_golang/prometheus"
 
 var (
-	MessagesConsumed = prometheus.NewCounter(prometheus.CounterOpts{
+	MessagesConsumed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_consumed",
 		Help: "The number of messages consumed",
-	})
+	}, []string{"appId"})
 
 	MessagesProduced = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_produced",
@@ -18,10 +18,10 @@ var (
 		Help: "The number of clickstream message received by SSE client",
 	})
 
-	MessagesProducedFailed = prometheus.NewCounter(prometheus.CounterOpts{
+	MessagesProducedFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_produced_failed",
 		Help: "The number of messages produced that failed to send",
-	})
+	}, []string{"integration"})
 
 	MessagesRetried = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_retried",
@@ -52,6 +52,11 @@ var (
 		Name: "event_router_bytes_uploaded_to_s3",
 		Help: "The number of bytes uploaded to S3",
 	}, []string{"appId", "integration"})
+
+	MessagesWithNoIntegration = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "event_router_messages_no_integrations",
+		Help: "The number of messages with no integrations enabled",
+	}, []string{"appId"})
 )
 
 func init() {
@@ -66,5 +71,6 @@ func init() {
 		BytesRetried,
 		MessagesUploadedToS3,
 		BytesUploadedToS3,
+		MessagesWithNoIntegration,
 	)
 }

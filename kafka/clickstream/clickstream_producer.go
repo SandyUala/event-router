@@ -1,11 +1,12 @@
 package clickstream
 
 import (
-	"fmt"
-
 	"encoding/json"
 
+	"reflect"
+
 	"github.com/astronomerio/clickstream-event-router/cassandra"
+	"github.com/astronomerio/clickstream-event-router/config"
 	"github.com/astronomerio/clickstream-event-router/integrations"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -39,18 +40,23 @@ type Message struct {
 	Integrations map[string]bool `json:"integrations"`
 }
 
-func NewProducer(config *ProducerConfig) (*Producer, error) {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":  config.BootstrapServers,
-		"message.timeout.ms": config.MessageTimeout,
-	})
+func NewProducer(cfg *ProducerConfig) (*Producer, error) {
+	cfgMap := &kafka.ConfigMap{
+		"bootstrap.servers":     cfg.BootstrapServers,
+		"message.timeout.ms":    cfg.MessageTimeout,
+		"request.required.acks": -1,
+	}
+	if config.GetBool(config.KafakDebug) {
+		cfgMap.SetKey("debug", "protocol,topic,msg")
+	}
+	p, err := kafka.NewProducer(cfgMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating kafka messageHandler")
 	}
 	cs := &Producer{
 		producer:     p,
-		integrations: config.Integrations,
-		config:       config,
+		integrations: cfg.Integrations,
+		config:       cfg,
 	}
 	// Handle messageHandler events in a goroutine
 	go cs.handleEvents()
@@ -67,11 +73,10 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	}
 	ints, err := c.integrations.GetIntegrations(dat.AppId)
 	if err != nil {
-		// We had an error connecting to Houston.  Put the message back onto the main
-		// topic so we don't lose it
+		// We had an error connecting to Houston.  Send the message to the retry topic
 		c.producer.ProduceChannel() <- &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
-				Topic:     &c.config.MasterTopic,
+				Topic:     &c.config.RetryTopic,
 				Partition: kafka.PartitionAny,
 			},
 			Key:   key,
@@ -79,10 +84,14 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 		}
 		return errors.Wrap(err, "Error getting integrations for appID "+dat.AppId)
 	}
-	if ints == nil {
-		logger.Errorf("No integrations returned for appId %s", dat.AppId)
-	}
 	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
+	prom.MessagesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Inc()
+	//logger.WithFields(logrus.Fields{"intsLen": len(*ints), "appId": dat.AppId}).Debug("Checking integrations")
+	if ints == nil || len(*ints) == 0 {
+		// No integrations found
+		prom.MessagesWithNoIntegration.With(prometheus.Labels{"appId": dat.AppId}).Inc()
+		return nil
+	}
 	for name, integration := range *ints {
 		// If the integration name is in the list of integrations from the message,
 		// and the message has it as false, don't send.  If there is no value, don't send
@@ -123,22 +132,24 @@ func (c *Producer) handleEvents() {
 				m := e
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
-					prom.MessagesProducedFailed.Inc()
-					// Send to the retry topic
-					retryMessage := RetryMessage{
-						Integration: *m.TopicPartition.Topic,
-						Message:     m.Value,
-					}
+					prom.MessagesProducedFailed.With(prometheus.Labels{"integration": *m.TopicPartition.Topic}).Inc()
+					if config.GetBool(config.Retry) {
+						// Send to the retry topic
+						retryMessage := RetryMessage{
+							Integration: *m.TopicPartition.Topic,
+							Message:     m.Value,
+							RetryCount:  1,
+						}
 
-					c.producer.ProduceChannel() <- &kafka.Message{
-						TopicPartition: kafka.TopicPartition{
-							Topic:     &c.config.RetryTopic,
-							Partition: kafka.PartitionAny,
-						},
-						Key:   []byte(m.Key),
-						Value: *retryMessage.ToBytes(),
+						c.producer.ProduceChannel() <- &kafka.Message{
+							TopicPartition: kafka.TopicPartition{
+								Topic:     &c.config.RetryTopic,
+								Partition: kafka.PartitionAny,
+							},
+							Key:   []byte(m.Key),
+							Value: *retryMessage.ToBytes(),
+						}
 					}
-
 				} else {
 					go func() {
 						dat := &Message{}
@@ -160,7 +171,7 @@ func (c *Producer) handleEvents() {
 				logger.Error(e.Error())
 
 			default:
-				fmt.Printf("Ignored event: %s\n", e)
+				logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Ignored Event: %v", e)
 			}
 		}
 	}
@@ -173,6 +184,8 @@ func (c *Producer) Close() {
 	messagesLeftToFlushed := c.producer.Flush(c.config.FlushTimeout)
 	if messagesLeftToFlushed != 0 {
 		logger.Errorf("Failed to flush %d messages after %d ms", messagesLeftToFlushed, c.config.FlushTimeout)
+	} else {
+		logger.Info("All messages flushed")
 	}
 	c.producer.Close()
 	if c.config.CassandraEnabled {

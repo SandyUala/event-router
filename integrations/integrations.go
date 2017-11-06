@@ -10,6 +10,7 @@ import (
 	"github.com/astronomerio/clickstream-event-router/config"
 	"github.com/astronomerio/clickstream-event-router/houston"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
+	"github.com/astronomerio/sse"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -25,7 +26,7 @@ var (
 type Integrations interface {
 	GetIntegrations(appId string) (*map[string]string, error)
 	UpdateIntegrationsForApp(appId string) error
-	EventListener(eventRaw, dataRaw []byte)
+	EventListener(event *sse.Event)
 }
 
 /*
@@ -105,15 +106,15 @@ func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 	if integrations == nil {
 		syncMap[appId].Lock()
 		log.Debugf("Populating integrations for appId %s", appId)
-		integrations, err := c.getIntegrationsFromHouston(appId)
+		ints, err := c.getIntegrationsFromHouston(appId)
 		if err != nil {
 			return nil, errors.Wrap(err, "Error getting integrations")
 		}
-		if integrations != nil {
-			integrationsMap.Put(appId, integrations)
-		}
+		integrationsMap.Put(appId, ints)
+		integrations = ints
 		syncMap[appId].Unlock()
 	}
+	//log.WithFields(logrus.Fields{"integrations": integrations, "appId": appId}).Debug("Returning integrations")
 	return integrations, nil
 }
 
@@ -123,7 +124,7 @@ func (c *Client) getIntegrationsFromHouston(appId string) (*map[string]string, e
 		log.Error(err)
 		return nil, err
 	}
-	return &integrations, nil
+	return integrations, nil
 }
 
 func (c *Client) UpdateIntegrationsForApp(appId string) error {
@@ -134,7 +135,7 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 	// Call get on the map to ensure a lock for the API was created
 	integrationsMap.Get(appId)
 	syncMap[appId].Lock()
-	integrationsMap.Put(appId, &ints)
+	integrationsMap.Put(appId, ints)
 	syncMap[appId].Unlock()
 	return nil
 }
@@ -143,17 +144,14 @@ type SSEMessage struct {
 	AppID string `json:"appId"`
 }
 
-func (c *Client) EventListener(eventRaw, dataRaw []byte) {
+func (c *Client) EventListener(event *sse.Event) {
 	logger := log.WithField("function", "EventListener")
-
-	event := string(eventRaw)
-	data := SSEMessage{}
-	if err := json.Unmarshal(dataRaw, &data); err != nil {
-		logger.Error("Error unmarshaling data")
+	message := &SSEMessage{}
+	if err := json.Unmarshal(event.Data, message); err != nil {
+		logger.Error(err)
+		return
 	}
-	if event == "clickstream" {
-		prom.SSEClickstreamMessagesReceived.Inc()
-		c.UpdateIntegrationsForApp(data.AppID)
-		log.Infof("AppID %s integrations updated ")
-	}
+	prom.SSEClickstreamMessagesReceived.Inc()
+	c.UpdateIntegrationsForApp(message.AppID)
+	logger.Infof("AppID %s integrations updated", message.AppID)
 }

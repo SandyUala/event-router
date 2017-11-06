@@ -34,6 +34,10 @@ const (
 	HoustonAPIKey   = "HOUSTON_API_KEY"
 	HoustonUserName = "HOUSTON_USERNAME"
 	HoustonPassword = "HOUSTON_PASSWORD"
+
+	// Non Env Variable configs
+	KafakDebug = "KAFKA_DEBUG"
+	Retry      = "RETRY"
 )
 
 var (
@@ -45,11 +49,28 @@ var (
 		KafkaIngestionTopic,
 		KafkaGroupID,
 		SSEURL,
+		ClickstreamRetryTopic,
 	}
 
 	retryRequiredEnvs = []string{
+		ClickstreamRetryS3Bucket,
+	}
+
+	allEnvs = []string{
+		Debug,
+		BootstrapServers,
+		ServePort,
+		KafkaGroupID,
+		KafkaIngestionTopic,
+		SSEURL,
+		KafkaProducerFlushTimeoutMS,
+		KafkaProducerMessageTimeoutMS,
+		MaxRetries,
 		ClickstreamRetryTopic,
 		ClickstreamRetryS3Bucket,
+		ClickstreamRetryS3PathPrefix,
+		HoustonAPIURL,
+		HoustonUserName,
 	}
 )
 
@@ -78,6 +99,9 @@ func Initialize(opts *InitOptions) {
 	// Debug value
 	debug = viper.GetBool(Debug)
 
+	// Print out the configs
+	printConfigs()
+
 }
 
 func GetString(cfg string) string {
@@ -92,8 +116,8 @@ func GetInt(cfg string) int {
 	return viper.GetInt(cfg)
 }
 
-func SetBool(cfg string, value bool) {
-	viper.Set(cfg, value)
+func SetBool(cfg string, val bool) {
+	viper.Set(cfg, val)
 }
 
 func setDefaults() {
@@ -136,4 +160,13 @@ func verifyRequiredEnvVars() error {
 
 func IsDebugEnabled() bool {
 	return debug
+}
+
+func printConfigs() {
+	fmt.Println("Initializing with the following configs:")
+	fmt.Println("========================================")
+	for _, envVar := range allEnvs {
+		fmt.Sprintf("%s_%s = %s\n", Prefix, envVar, GetString(envVar))
+	}
+	fmt.Println("========================================")
 }

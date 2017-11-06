@@ -1,115 +1,96 @@
 package sse
 
 import (
-	"os"
-
 	"time"
 
-	"github.com/astronomerio/clickstream-event-router/config"
 	"github.com/astronomerio/clickstream-event-router/houston"
-	"github.com/r3labs/sse"
+	"github.com/astronomerio/sse"
 	"github.com/sirupsen/logrus"
 )
 
 var log = logrus.WithField("package", "sse")
 
+type SSE interface {
+	Subscribe(channel string, handler func(event *sse.Event))
+}
+
 type Client struct {
-	client         *sse.Client
 	houstonClient  houston.HoustonClient
+	sseUri         string
 	shouldShutdown bool
 	shutdownChan   chan struct{}
+	restartChan    chan struct{}
 }
 
-func NewSSEClient(sseUrl string, houstonCLient houston.HoustonClient) *Client {
-	client := sse.NewClient(sseUrl)
+func NewSSEClient(sseUri string, houstonClient houston.HoustonClient, shutdownChannel chan struct{}) (*Client, error) {
 	return &Client{
-		client:        client,
-		houstonClient: houstonCLient,
-	}
+		houstonClient: houstonClient,
+		shutdownChan:  shutdownChannel,
+		sseUri:        sseUri,
+		restartChan:   make(chan struct{}),
+	}, nil
 }
 
-// Subscribe will subscribe to the SSE stream and send received events to the handler func
-func (c *Client) Subscribe(stream string, handler func(event []byte, data []byte)) {
-	logger := log.WithFields(
-		logrus.Fields{
-			"function": "Subscribe",
-			"stream":   stream,
-		},
-	)
-
+func (c *Client) Subscribe(channel string, handler func(event *sse.Event)) {
+	logger := log.WithField("function", "start")
 	go func() {
-		<-c.shutdownChan
-		c.shouldShutdown = true
-	}()
-
-	go func() {
-		for {
-			// Get the auth token.  We get it before we start listening because if the
-			// auth token has become invalidated, we need to get a new one.
-			// Check if we are using one from env variable or logging in.
-			auth := config.GetString(config.HoustonAPIKey)
-			if len(auth) == 0 {
-				// Get the auth token
-				a, err := c.houstonClient.GetAuthorizationKey()
-				if err != nil {
-					logger.WithField("error", err).Error("Error getting auth token")
-					os.Exit(1)
-				}
-				auth = a
+		// For loop so we restart
+		for !c.shouldShutdown {
+			authToken, err := c.houstonClient.GetAuthorizationToken()
+			if err != nil {
+				logger.Error(err)
+				// Sleep for 5 seconds
+				time.Sleep(time.Second * 5)
+				continue
 			}
-			c.client.Headers["authorization"] = auth
-			if c.listen(stream, handler) && !c.shouldShutdown {
-				logger.Info("SSE Connection lost, reconnecting")
-			} else {
-				logger.Info("SSE Connection closed, exiting")
+			sse.WithURI(c.sseUri)
+			sse.WithHTTPHeaders(map[string]string{
+				"authorization": authToken,
+			})
+			// Start listening
+			c.listen(channel, handler)
+			logger.Info("Starting SSE Client")
+			if err := sse.Listen(); err != nil {
+				logger.Error(err)
+				continue
+			}
+		}
+	}()
+}
+
+func (c *Client) listen(channel string, handler func(event *sse.Event)) {
+	logger := log.WithField("function", "listen")
+	logger.Info("Starting SSE Listeners")
+	go func() {
+		clickstreamEvents := sse.Subscribe(channel)
+		heartbeat := sse.Subscribe("heartbeat")
+		events := sse.Events()
+		for {
+			select {
+			case event := <-clickstreamEvents:
+				if event == nil {
+					logger.Warn("Received nil event")
+					sse.Close()
+					time.Sleep(time.Second * 5)
+					return
+				}
+				if event.Event == channel {
+					handler(event)
+				}
+			case e := <-heartbeat:
+				if e != nil {
+					logger.Debug(e.Event)
+				}
+			case e := <-events:
+				logger.Error(e.Error)
+				// Close the SSE channel
+				sse.Close()
+				return
+			case <-c.shutdownChan:
+				c.shouldShutdown = true
+				sse.Close()
 				return
 			}
-			time.Sleep(time.Second * time.Duration(5))
 		}
 	}()
-}
-
-func (c *Client) listen(stream string, handler func(event []byte, data []byte)) bool {
-	logger := log.WithField("function", "listen")
-	logger.Info("Starting SSE Listener")
-	eventChan := make(chan *sse.Event)
-	if err := c.client.SubscribeChan(stream, eventChan); err != nil {
-		logger.Error(err)
-		return true
-	}
-	logger.Infof("Subscribed to SSE Stream %s", stream)
-
-	event := sse.Event{}
-	for {
-		select {
-		case <-c.shutdownChan:
-			logger.Infof("SSE Client terminating...")
-			return false
-		case ev := <-eventChan:
-			if ev == nil {
-				logger.Debug("Received nil event")
-				return true
-			}
-			switch {
-			case len(ev.Event) != 0:
-				// If the event is a heart beat, ignore it
-				if string(ev.Event) == "heartbeat" {
-					logger.Debug("SSE Heartbeat")
-					event = sse.Event{}
-					continue
-				}
-				event.Event = ev.Event
-			case len(ev.Data) != 0:
-				event.Data = ev.Data
-				handler(event.Event, event.Data)
-				logger.WithFields(logrus.Fields{
-					"event": string(event.Event),
-					"data":  string(event.Data),
-				}).Debug("Received Sent")
-				event = sse.Event{}
-			}
-
-		}
-	}
-	return true
 }

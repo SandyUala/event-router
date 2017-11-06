@@ -8,6 +8,10 @@ import (
 
 	"encoding/json"
 
+	"time"
+
+	"sync"
+
 	"github.com/astronomerio/clickstream-event-router/config"
 	"github.com/astronomerio/clickstream-event-router/pkg"
 	"github.com/pkg/errors"
@@ -15,27 +19,40 @@ import (
 )
 
 type HoustonClient interface {
-	GetIntegrations(appId string) (map[string]string, error)
-	GetAuthorizationKey() (string, error)
+	GetIntegrations(appId string) (*map[string]string, error)
+	GetAuthorizationToken() (string, error)
 }
 
 // Client the HTTPClient used to communicate with the HoustonAPI
 type Client struct {
 	HTTPClient *pkg.HTTPClient
 	APIUrl     string
+	authToken  *houstonAuthToken
+	mutex      *sync.Mutex
 }
 
-type HoustonResponse struct {
+type houstonResponse struct {
 	Raw  *http.Response
 	Body []byte
 }
 
+type houstonAuthToken struct {
+	token   string
+	expDate time.Time
+}
+
 // NewHoustonClient returns a new Client with the logger and HTTP client setup.
 func NewHoustonClient(HTTPClient *pkg.HTTPClient, apiURL string) *Client {
-	return &Client{
+	c := &Client{
 		HTTPClient: HTTPClient,
 		APIUrl:     apiURL,
+		mutex:      &sync.Mutex{},
 	}
+	c.authToken = &houstonAuthToken{}
+	if len(config.GetString(config.HoustonAPIKey)) != 0 {
+		c.authToken.token = config.GetString(config.HoustonAPIKey)
+	}
+	return c
 }
 
 type GraphQLQuery struct {
@@ -47,6 +64,9 @@ type VerifyTokenResponse struct {
 		VerifyToken struct {
 			Success bool   `json:"success"`
 			Message string `json:"message"`
+			Decoded struct {
+				Exp time.Time `json:"exp"`
+			} `json:"decoded"`
 		} `json:"verifyToken"`
 	} `json:"data"`
 	Errors []Errors `json:"errors"`
@@ -58,6 +78,9 @@ type CreateTokenResponse struct {
 			Success bool   `json:"success"`
 			Token   string `json:"token"`
 			Message string `json:"message"`
+			Decoded struct {
+				Exp time.Time `json:"exp"`
+			} `json:"decoded"`
 		} `json:"createToken"`
 	} `json:"data"`
 	Errors []Errors `json:"errors"`
@@ -92,7 +115,7 @@ var (
 	query sources {
 	  sources(id:"%s") {
 		clickstream{
-			name
+	      name
 		  topic: code
 		  enabled
 		}
@@ -105,6 +128,9 @@ var (
 		success
 		message
 		token
+	    decoded{
+	      exp
+	    }
 	  }
 	}`
 
@@ -113,23 +139,24 @@ var (
 	  verifyToken(token: "%s"){
 	    success
 	    message
+	    decoded{
+	      exp
+	    }
 	  }
 	}`
-
-	authToken string
 )
 
 // GetIntegrations will get the enabled integrations from Houston
-func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
+func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 	logger := log.WithField("function", "GetIntegrations")
 	logger.WithField("appId", appId).Debug("Entered GetIntegrations")
 
 	query := fmt.Sprintf(querySources, appId)
-	authKey, err := c.GetAuthorizationKey()
+	token, err := c.GetAuthorizationToken()
 	if err != nil {
 		return nil, errors.Wrap(err, "Error getting auth key")
 	}
-	houstonResponse, err := c.queryHouston(query, authKey)
+	houstonResponse, err := c.queryHouston(query, token)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error getting source integrations")
 	}
@@ -145,10 +172,78 @@ func (c *Client) GetIntegrations(appId string) (map[string]string, error) {
 			}
 		}
 	}
-	return integrationsMap, nil
+	logger.WithField("integrations", integrationsMap).Debug("Returning Integrations")
+	return &integrationsMap, nil
 }
 
-func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, error) {
+func (c *Client) GetAuthorizationToken() (string, error) {
+	logger := log.WithField("function", "GetAuthorizationToken")
+	logger.Debug("Entered GetAuthorizationToken")
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	// If we have an auth token, and exp date is good, return that
+	if len(c.authToken.token) != 0 {
+		if c.authToken.expDate.Before(time.Now()) {
+			return c.authToken.token, nil
+		}
+		// Auth token has an invalid time, lets see if we can verify it!
+		logger.Debug("Token expired, validating")
+		verifyToken, err := c.verifyToken()
+		if err != nil {
+			return "", errors.Wrap(err, "Error getting authorization token")
+		}
+		if verifyToken.Data.VerifyToken.Success {
+			// Update the exp date
+			c.authToken.expDate = verifyToken.Data.VerifyToken.Decoded.Exp
+			return c.authToken.token, nil
+		}
+	}
+	logger.Debug("Token invalid, creating")
+	// Not a valid token!  Create a new one!
+	createResponse, err := c.createToken()
+	if err != nil {
+		return "", errors.Wrap(err, "Error getting authorization token")
+	}
+	// Update the auth token
+	c.authToken.token = createResponse.Data.CreateToken.Token
+	c.authToken.expDate = createResponse.Data.CreateToken.Decoded.Exp
+	return c.authToken.token, nil
+}
+
+func (c *Client) createToken() (*CreateTokenResponse, error) {
+	if len(config.GetString(config.HoustonUserName)) == 0 ||
+		len(config.GetString(config.HoustonPassword)) == 0 {
+		return nil, errors.New("Houston username/password not provided, can't create new token")
+	}
+	query := fmt.Sprintf(createToken,
+		config.GetString(config.HoustonUserName),
+		config.GetString(config.HoustonPassword))
+
+	houstonResponse, err := c.queryHouston(query, "")
+	if err != nil {
+		return nil, errors.Wrap(err, "Error creating token")
+	}
+	var createTokenRespones CreateTokenResponse
+	if err = json.Unmarshal(houstonResponse.Body, &createTokenRespones); err != nil {
+		return nil, errors.Wrap(err, "Error unmarshaling create token response")
+	}
+	return &createTokenRespones, nil
+}
+
+func (c *Client) verifyToken() (*VerifyTokenResponse, error) {
+	query := fmt.Sprintf(verifyToken, c.authToken.token)
+	queryResponse, err := c.queryHouston(query, "")
+	if err != nil {
+		return nil, errors.Wrap(err, "Error verifying token")
+	}
+	var verifyResponse VerifyTokenResponse
+	if err = json.Unmarshal(queryResponse.Body, &verifyResponse); err != nil {
+		return nil, errors.Wrap(err, "Error unmarshaling verify response")
+	}
+	return &verifyResponse, nil
+}
+
+func (c *Client) queryHouston(query string, authKey string) (houstonResponse, error) {
 	logger := log.WithField("function", "QueryHouston")
 	doOpts := &pkg.DoOptions{
 		Data: GraphQLQuery{query},
@@ -156,11 +251,11 @@ func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, er
 			"Accept": "application/json",
 		},
 	}
-	logger.WithField("query", doOpts.Data).Debug("Querying Houston")
+	logger.Debug("Querying Houston")
 	if len(authKey) != 0 {
 		doOpts.Headers["authorization"] = authKey
 	}
-	var response HoustonResponse
+	var response houstonResponse
 	httpResponse, err := c.HTTPClient.Do("POST", c.APIUrl, doOpts)
 	if err != nil {
 		return response, err
@@ -171,65 +266,6 @@ func (c *Client) queryHouston(query string, authKey string) (HoustonResponse, er
 	if err != nil {
 		return response, err
 	}
-	response = HoustonResponse{httpResponse, body}
+	response = houstonResponse{httpResponse, body}
 	return response, nil
-}
-
-func (c *Client) GetAuthorizationKey() (string, error) {
-	// Check for a houston api key
-	houstonAPIKey := config.GetString(config.HoustonAPIKey)
-	var authKey string
-	if len(houstonAPIKey) != 0 {
-		authKey = houstonAPIKey
-	} else {
-		at, err := c.getToken()
-		if err != nil {
-			return "", errors.Wrap(err, "Error getting authorization key")
-		}
-		authToken = at
-		authKey = at
-	}
-	return authKey, nil
-}
-
-func (c *Client) getToken() (string, error) {
-	// If we have a token, verify it
-	if len(authToken) != 0 {
-		success, err := c.verifyToken()
-		if err != nil {
-			// Dont' want to return, try to get a new key
-			log.Infof("Error validating auth key: %v", err)
-		}
-		if success {
-			return authToken, nil
-		}
-	}
-	query := fmt.Sprintf(createToken,
-		config.GetString(config.HoustonUserName),
-		config.GetString(config.HoustonPassword))
-	houstonResponse, err := c.queryHouston(query, "")
-	if err != nil {
-		return "", errors.Wrap(err, "Error creating token")
-	}
-	var createTokenRespones CreateTokenResponse
-	if err = json.Unmarshal(houstonResponse.Body, &createTokenRespones); err != nil {
-		return "", errors.Wrap(err, "Error unmarshaling create token response")
-	}
-	if createTokenRespones.Data.CreateToken.Success {
-		return createTokenRespones.Data.CreateToken.Token, nil
-	}
-	return "", errors.New(createTokenRespones.Data.CreateToken.Message)
-}
-
-func (c *Client) verifyToken() (bool, error) {
-	query := fmt.Sprintf(verifyToken, authToken)
-	queryResponse, err := c.queryHouston(query, "")
-	if err != nil {
-		return false, errors.Wrap(err, "Error verifying token")
-	}
-	var verifyResponse VerifyTokenResponse
-	if err = json.Unmarshal(queryResponse.Body, &verifyResponse); err != nil {
-		return false, errors.Wrap(err, "Error unmarshaling verify response")
-	}
-	return verifyResponse.Data.VerifyToken.Success, nil
 }
