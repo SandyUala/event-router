@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"os"
-	"runtime"
 
 	"time"
 
@@ -37,7 +36,9 @@ var (
 
 	DisableCacheTTL = false
 	EnableRetry     = false
-	StartPPROF      = ""
+	StartPPROF      = false
+	StartTrace      = ""
+	StartProfile    = ""
 	KafkaDebug      = false
 )
 
@@ -45,7 +46,9 @@ func init() {
 	RootCmd.AddCommand(StartCmd)
 	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
 	StartCmd.Flags().BoolVar(&DisableCacheTTL, "disable-cache-ttl", false, "disables cache ttl")
-	StartCmd.Flags().StringVarP(&StartPPROF, "pprof", "p", "", "enable pprof and set file location")
+	StartCmd.Flags().BoolVar(&StartPPROF, "pprof", false, "enables pprof")
+	StartCmd.Flags().StringVarP(&StartProfile, "profile", "p", "", "enable cpu profile and set file location")
+	StartCmd.Flags().StringVarP(&StartTrace, "trace", "t", "", "enable trace and set file location")
 	StartCmd.Flags().BoolVar(&KafkaDebug, "kafka-debug", false, "enable kafka debuging")
 }
 
@@ -57,13 +60,13 @@ func start(cmd *cobra.Command, args []string) {
 	logger := log.WithField("function", "start")
 	logger.Info("Starting event-router")
 
-	if len(StartPPROF) != 0 {
-		if StartPPROF[len(StartPPROF)-1] == '/' {
-			StartPPROF = StartPPROF[:len(StartPPROF)-1]
+	if len(StartProfile) != 0 {
+		if StartProfile[len(StartProfile)-1] == '/' {
+			StartProfile = StartProfile[:len(StartProfile)-1]
 		}
 		logger.Info("Enabling Profiling")
 		// CPU Profile
-		f, err := os.Create(StartPPROF + "/cpuprofile.pprof")
+		f, err := os.Create(StartProfile + "/cpuprofile.pprof")
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -71,9 +74,15 @@ func start(cmd *cobra.Command, args []string) {
 			logger.Fatal(err)
 		}
 		defer pprof.StopCPUProfile()
+	}
 
+	if len(StartTrace) != 0 {
+		if StartTrace[len(StartTrace)-1] == '/' {
+			StartTrace = StartTrace[:len(StartTrace)-1]
+		}
+		logger.Info("Enabling Tracing")
 		// Trace
-		t, err := os.Create(StartPPROF + "/clickstream-event-router.trace")
+		t, err := os.Create(StartTrace + "/clickstream-event-router.trace")
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -196,20 +205,8 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")
-	if err := apiClient.Serve(config.GetString(config.ServePort)); err != nil {
+	if err := apiClient.Serve(config.GetString(config.ServePort), StartPPROF); err != nil {
 		logger.Error(err)
-	}
-	if len(StartPPROF) != 0 {
-		// Write out memory heap
-		f, err := os.Create(StartPPROF + "/memoryprofile.pprof")
-		if err != nil {
-			logger.Fatal("could not create memory profile: ", err)
-		}
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
-			logger.Fatal("could not write memory profile: ", err)
-		}
-		f.Close()
 	}
 	logger.Debug("Exiting event-router")
 }

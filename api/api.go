@@ -29,7 +29,7 @@ func (c *Client) AppendRouteHandler(rh routes.RouteHandler) {
 	c.handlers = append(c.handlers, rh)
 }
 
-func (c *Client) Serve(port string) error {
+func (c *Client) Serve(port string, pprof bool) error {
 	logger := log.WithFields(logrus.Fields{"function": "Serve"})
 	logger.Debug("Entered Serve")
 	var router *gin.Engine
@@ -50,7 +50,9 @@ func (c *Client) Serve(port string) error {
 		c.String(http.StatusOK, "OK")
 	})
 
-	ginpprof.Wrap(router)
+	if pprof {
+		ginpprof.Wrap(router)
+	}
 
 	if string(port[0]) != ":" {
 		port = ":" + port
