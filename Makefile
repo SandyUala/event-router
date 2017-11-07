@@ -63,4 +63,7 @@ tools:
 	@go get -u -v honnef.co/go/tools/...
 
 clean:
-	rm event-router
+	-rm event-router
+	-docker rmi `docker images | grep "astronomerio/clickstream-event-router" | awk '{print $3}'`
+
+.PHONY : clean

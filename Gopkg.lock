@@ -109,6 +109,12 @@
   version = "v1.7.3"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/mailru/easyjson"
+  packages = [".","buffer","jlexer","jwriter"]
+  revision = "5f62e4f3afa2f576dc86531b7df4d966b19ef8f8"
+
+[[projects]]
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
@@ -249,6 +255,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "148ba7721265fda34e2b58e803d732ebdbc59693c20661b779acdd9b68cdda21"
+  inputs-digest = "c8da906b460f1ec4825f93420f4bb91db065e5f0b9354e54c5bf4a544f3c1bf0"
   solver-name = "gps-cdcl"
   solver-version = 1

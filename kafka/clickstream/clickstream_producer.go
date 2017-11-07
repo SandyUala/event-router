@@ -1,8 +1,6 @@
 package clickstream
 
 import (
-	"encoding/json"
-
 	"reflect"
 
 	"fmt"
@@ -39,6 +37,7 @@ type ProducerConfig struct {
 	DeadletterClient *deadletterqueue.Client
 }
 
+//easyjson:json
 type Message struct {
 	AppId        string          `json:"appId"`
 	MessageID    string          `json:"messageId"`
@@ -73,7 +72,8 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	logger := log.WithField("function", "HandleMessage")
 	// Get the appId
 	dat := &Message{}
-	if err := json.Unmarshal(message, &dat); err != nil {
+	if err := dat.UnmarshalJSON(message); err != nil {
+		//if err := json.Unmarshal(message, &dat); err != nil {
 		logger.Error("Error unmarshaling message json: " + err.Error())
 		return errors.Wrap(err, "Error unmarshaling json")
 	}
@@ -139,7 +139,8 @@ func (c *Producer) handleEvents() {
 				if m.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
 					dat := &Message{}
-					if err := json.Unmarshal(m.Value, &dat); err != nil {
+					if err := dat.UnmarshalJSON(m.Value); err != nil {
+						//if err := json.Unmarshal(m.Value, &dat); err != nil {
 						logger.Error("Error unmarshaling message json: " + err.Error())
 						return
 					}
@@ -154,7 +155,8 @@ func (c *Producer) handleEvents() {
 				} else {
 					go func() {
 						dat := &Message{}
-						if err := json.Unmarshal(m.Value, &dat); err != nil {
+						if err := dat.UnmarshalJSON(m.Value); err != nil {
+							//if err := json.Unmarshal(m.Value, &dat); err != nil {
 							logger.Error("Error unmarshaling message json: " + err.Error())
 							return
 						}
