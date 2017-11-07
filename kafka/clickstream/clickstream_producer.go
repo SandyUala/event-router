@@ -47,15 +47,10 @@ type Message struct {
 
 func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 	cfgMap := &confluent.ConfigMap{
-		"bootstrap.servers":               cfg.BootstrapServers,
-		"group.id":                        cfg.GroupID,
-		"session.timeout.ms":              6000,
-		"go.events.channel.enable":        true,
-		"go.application.rebalance.enable": true,
-		"statistics.interval.ms":          500,
-		"message.timeout.ms":              cfg.MessageTimeout,
-		"request.required.acks":           -1,
-		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"},
+		"bootstrap.servers":       cfg.BootstrapServers,
+		"message.timeout.ms":      cfg.MessageTimeout,
+		"request.required.acks":   -1,
+		"go.produce.channel.size": 1000,
 	}
 	if config.GetBool(config.KafakDebug) {
 		cfgMap.SetKey("debug", "protocol,topic,msg")

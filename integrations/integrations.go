@@ -12,6 +12,7 @@ import (
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	"github.com/astronomerio/sse"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -77,7 +78,7 @@ func NewClient(houstonClient houston.HoustonClient, shutdownChan chan struct{}) 
 
 func (c *Client) StartTTL() {
 	ttl := config.GetInt(config.CacheTTLMin)
-	log.Infof("Setting Integration Cache TTL to %sm", ttl)
+	log.Infof("Setting Integration Cache TTL to %dm", ttl)
 	timer := time.NewTimer(time.Minute * time.Duration(ttl))
 	go func() {
 		for {
@@ -104,15 +105,11 @@ func (c *Client) resetCache() {
 func (c *Client) GetIntegrations(appId string) (*map[string]string, error) {
 	integrations := integrationsMap.Get(appId)
 	if integrations == nil {
-		syncMap[appId].Lock()
+		prom.IntegrationCacheMiss.With(prometheus.Labels{"appId": appId}).Inc()
 		log.Debugf("Populating integrations for appId %s", appId)
-		ints, err := c.getIntegrationsFromHouston(appId)
-		if err != nil {
-			return nil, errors.Wrap(err, "Error getting integrations")
+		if err := c.UpdateIntegrationsForApp(appId); err != nil {
+			return nil, errors.Wrap(err, "Error getting integration")
 		}
-		integrationsMap.Put(appId, ints)
-		integrations = ints
-		syncMap[appId].Unlock()
 	}
 	//log.WithFields(logrus.Fields{"integrations": integrations, "appId": appId}).Debug("Returning integrations")
 	return integrations, nil
@@ -128,6 +125,7 @@ func (c *Client) getIntegrationsFromHouston(appId string) (*map[string]string, e
 }
 
 func (c *Client) UpdateIntegrationsForApp(appId string) error {
+	prom.IntegrationCacheUpdate.With(prometheus.Labels{"appId": appId}).Inc()
 	ints, err := c.houstonClient.GetIntegrations(appId)
 	if err != nil {
 		return errors.Wrap(err, "Error updating integrations")

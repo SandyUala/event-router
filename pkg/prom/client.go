@@ -57,6 +57,16 @@ var (
 		Name: "event_router_messages_no_integrations",
 		Help: "The number of messages with no integrations enabled",
 	}, []string{"appId"})
+
+	IntegrationCacheMiss = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "event_router_integration_cache_miss",
+		Help: "Number of cache hits to integration cache",
+	}, []string{"appId"})
+
+	IntegrationCacheUpdate = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "event_router_integration_cache_update",
+		Help: "Number of cache updates",
+	}, []string{"appId"})
 )
 
 func init() {
@@ -72,5 +82,7 @@ func init() {
 		MessagesUploadedToS3,
 		BytesUploadedToS3,
 		MessagesWithNoIntegration,
+		IntegrationCacheMiss,
+		IntegrationCacheUpdate,
 	)
 }

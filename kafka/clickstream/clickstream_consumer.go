@@ -1,8 +1,6 @@
 package clickstream
 
 import (
-	"reflect"
-
 	"github.com/astronomerio/clickstream-event-router/kafka"
 	"github.com/astronomerio/clickstream-event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
@@ -93,8 +91,8 @@ func (c *Consumer) Run() {
 				logger.Error(e.Error())
 			case *confluent.Stats:
 				go prom.HandleKafkaStats(e, "consumer")
-			default:
-				logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Consumer Ignored Event: %v", e)
+				//default:
+				//	logger.WithField("type", reflect.TypeOf(e).String()).Errorf("Consumer Ignored Event: %v", e)
 			}
 		}
 	}
