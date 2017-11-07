@@ -37,6 +37,7 @@ var (
 	DisableCacheTTL = false
 	EnableRetry     = false
 	StartPPROF      = ""
+	StartTrace      = ""
 	KafkaDebug      = false
 )
 
@@ -45,6 +46,7 @@ func init() {
 	StartCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enables retry logic")
 	StartCmd.Flags().BoolVar(&DisableCacheTTL, "disable-cache-ttl", false, "disables cache ttl")
 	StartCmd.Flags().StringVarP(&StartPPROF, "pprof", "p", "", "enable pprof and set file location")
+	StartCmd.Flags().StringVarP(&StartTrace, "trace", "t", "", "enable trace and set file location")
 	StartCmd.Flags().BoolVar(&KafkaDebug, "kafka-debug", false, "enable kafka debuging")
 }
 
@@ -70,9 +72,15 @@ func start(cmd *cobra.Command, args []string) {
 			logger.Fatal(err)
 		}
 		defer pprof.StopCPUProfile()
+	}
 
+	if len(StartTrace) != 0 {
+		if StartTrace[len(StartTrace)-1] == '/' {
+			StartTrace = StartTrace[:len(StartTrace)-1]
+		}
+		logger.Info("Enabling Tracing")
 		// Trace
-		t, err := os.Create(StartPPROF + "/clickstream-event-router.trace")
+		t, err := os.Create(StartTrace + "/clickstream-event-router.trace")
 		if err != nil {
 			logger.Fatal(err)
 		}
