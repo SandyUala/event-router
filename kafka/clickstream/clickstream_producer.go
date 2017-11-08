@@ -1,7 +1,6 @@
 package clickstream
 
 import (
-	json "encoding/json"
 	"reflect"
 
 	"fmt"
@@ -73,8 +72,8 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	logger := log.WithField("function", "HandleMessage")
 	// Get the appId
 	dat := &Message{}
-	//if err := json.Unmarshal(message, &dat); err != nil {
-	if err := json.Unmarshal(message, &dat); err != nil {
+	if err := dat.UnmarshalJSON(message); err != nil {
+		//if err := json.Unmarshal(message, &dat); err != nil {
 		logger.Error("Error unmarshaling message json: " + err.Error())
 		return errors.Wrap(err, "Error unmarshaling json")
 	}
@@ -141,8 +140,8 @@ func (c *Producer) handleEvents() {
 				if e.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", e.TopicPartition.Error)
 					dat := &Message{}
-					//if err := dat.UnmarshalJSON(m.Value); err != nil {
-					if err := json.Unmarshal(e.Value, &dat); err != nil {
+					if err := dat.UnmarshalJSON(e.Value); err != nil {
+						//if err := json.Unmarshal(e.Value, &dat); err != nil {
 						logger.Error("Error unmarshaling message json: " + err.Error())
 						return
 					}
