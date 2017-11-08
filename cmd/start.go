@@ -119,6 +119,7 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Integration Client
 	integrationClient := integrations.NewClient(houstonClient, shutdownChannel)
+	apiClient.AppendRouteHandler(v1.NewIntegrationsHandler(integrationClient))
 
 	// SSE Client
 	if !DisableSSE {

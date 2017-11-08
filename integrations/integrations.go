@@ -60,6 +60,16 @@ func (m *Map) Put(key string, value *map[string]string) {
 	m.integrations[key] = value
 }
 
+func (m *Map) Keys() []string {
+	keys := make([]string, len(m.integrations))
+	i := 0
+	for key := range m.integrations {
+		keys[i] = key
+		i++
+	}
+	return keys
+}
+
 type Client struct {
 	houstonClient houston.HoustonClient
 	shutdownChan  chan struct{}
@@ -136,6 +146,10 @@ func (c *Client) UpdateIntegrationsForApp(appId string) error {
 	integrationsMap.Put(appId, ints)
 	syncMap[appId].Unlock()
 	return nil
+}
+
+func (c *Client) GetAllIntegrations() map[string]*map[string]string {
+	return integrationsMap.integrations
 }
 
 type SSEMessage struct {

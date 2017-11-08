@@ -1,6 +1,7 @@
 package clickstream
 
 import (
+	json "encoding/json"
 	"reflect"
 
 	"fmt"
@@ -72,11 +73,13 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	logger := log.WithField("function", "HandleMessage")
 	// Get the appId
 	dat := &Message{}
-	if err := dat.UnmarshalJSON(message); err != nil {
-		//if err := json.Unmarshal(message, &dat); err != nil {
+	//if err := json.Unmarshal(message, &dat); err != nil {
+	if err := json.Unmarshal(message, &dat); err != nil {
 		logger.Error("Error unmarshaling message json: " + err.Error())
 		return errors.Wrap(err, "Error unmarshaling json")
 	}
+	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
+	prom.MessagesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Inc()
 	ints, err := c.integrations.GetIntegrations(dat.AppId)
 	if err != nil {
 		// We had an error connecting to Houston.  Send the message to the retry topic
@@ -90,8 +93,6 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 		}
 		return errors.Wrap(err, "Error getting integrations for appID "+dat.AppId)
 	}
-	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
-	prom.MessagesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Inc()
 	//logger.WithFields(logrus.Fields{"intsLen": len(*ints), "appId": dat.AppId}).Debug("Checking integrations")
 	if ints == nil || len(*ints) == 0 {
 		// No integrations found
@@ -112,6 +113,8 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 			Key:   key,
 			Value: message,
 		}
+		prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": integration}).Inc()
+		prom.BytesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": integration}).Add(float64(len(message)))
 		if c.config.CassandraEnabled {
 			// Send the message ID to cassandra
 			if err := c.config.Cassandra.InsertMessage(dat.MessageID, integration+"-sent"); err != nil {
@@ -135,40 +138,22 @@ func (c *Producer) handleEvents() {
 		case ev := <-c.producer.Events():
 			switch e := ev.(type) {
 			case *confluent.Message:
-				m := e
-				if m.TopicPartition.Error != nil {
-					logger.Errorf("Delivery failed: %v", m.TopicPartition.Error)
+				if e.TopicPartition.Error != nil {
+					logger.Errorf("Delivery failed: %v", e.TopicPartition.Error)
 					dat := &Message{}
-					if err := dat.UnmarshalJSON(m.Value); err != nil {
-						//if err := json.Unmarshal(m.Value, &dat); err != nil {
+					//if err := dat.UnmarshalJSON(m.Value); err != nil {
+					if err := json.Unmarshal(e.Value, &dat); err != nil {
 						logger.Error("Error unmarshaling message json: " + err.Error())
 						return
 					}
-					prom.MessagesProducedFailed.With(prometheus.Labels{"integration": *m.TopicPartition.Topic, "appId": dat.AppId}).Inc()
+					prom.MessagesProducedFailed.With(prometheus.Labels{"integration": *e.TopicPartition.Topic, "appId": dat.AppId}).Inc()
 					if config.GetBool(config.Retry) {
 						// Send to retry cache
 						c.config.DeadletterClient.AddToQueue(&deadletterqueue.QueueObject{
-							Key:  fmt.Sprintf("%s/%s", dat.AppId, m.TopicPartition.Topic),
-							Data: m.Value,
+							Key:  fmt.Sprintf("%s/%s", dat.AppId, e.TopicPartition.Topic),
+							Data: e.Value,
 						})
 					}
-				} else {
-					go func() {
-						dat := &Message{}
-						if err := dat.UnmarshalJSON(m.Value); err != nil {
-							//if err := json.Unmarshal(m.Value, &dat); err != nil {
-							logger.Error("Error unmarshaling message json: " + err.Error())
-							return
-						}
-						prom.MessagesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Inc()
-						prom.BytesProduced.With(prometheus.Labels{"appId": dat.AppId, "integration": *m.TopicPartition.Topic}).Add(float64(len(m.Value)))
-						if c.config.CassandraEnabled {
-							// Send the message ID to cassandra
-							if err := c.config.Cassandra.InsertMessage(dat.MessageID, *m.TopicPartition.Topic+"-confirmed"); err != nil {
-								logger.Error(err)
-							}
-						}
-					}()
 				}
 			case *confluent.Error:
 				logger.Error(e.Error())

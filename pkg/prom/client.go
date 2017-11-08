@@ -13,6 +13,11 @@ var (
 		Help: "The number of messages produced",
 	}, []string{"appId", "integration"})
 
+	MessagesProducedConfirmed = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "event_router_messages_produced_confirmed",
+		Help: "The number of messages confirmed produced",
+	}, []string{"appId", "integration"})
+
 	SSEClickstreamMessagesReceived = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "event_router_sse_clickstream_messages_received",
 		Help: "The number of clickstream message received by SSE client",
@@ -21,7 +26,7 @@ var (
 	MessagesProducedFailed = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_produced_failed",
 		Help: "The number of messages produced that failed to send",
-	}, []string{"integration"})
+	}, []string{"integration", "appId"})
 
 	MessagesRetried = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "event_router_messages_retried",
@@ -73,6 +78,7 @@ func init() {
 	prometheus.MustRegister(
 		MessagesConsumed,
 		MessagesProduced,
+		MessagesProducedConfirmed,
 		SSEClickstreamMessagesReceived,
 		MessagesProducedFailed,
 		MessagesRetried,

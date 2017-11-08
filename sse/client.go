@@ -36,6 +36,7 @@ func (c *Client) Subscribe(channel string, handler func(event *sse.Event)) {
 	go func() {
 		// For loop so we restart
 		for !c.shouldShutdown {
+			logger.Debug("Getting SSE Auth Token")
 			authToken, err := c.houstonClient.GetAuthorizationToken()
 			if err != nil {
 				logger.Error(err)

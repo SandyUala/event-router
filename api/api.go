@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/DeanThompson/ginpprof"
 	"github.com/astronomerio/clickstream-event-router/api/routes"
@@ -58,8 +59,10 @@ func (c *Client) Serve(port string, pprof bool) error {
 		port = ":" + port
 	}
 	srv := &http.Server{
-		Addr:    port,
-		Handler: router,
+		Addr:         port,
+		Handler:      router,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
