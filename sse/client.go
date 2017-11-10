@@ -64,7 +64,7 @@ func (c *Client) listen(channel string, handler func(event *sse.Event)) {
 	logger.Info("Starting SSE Listeners")
 	go func() {
 		clickstreamEvents := sse.Subscribe(channel)
-		heartbeat := sse.Subscribe("heartbeat")
+		//heartbeat := sse.Subscribe("heartbeat")
 		events := sse.Events()
 		for {
 			select {
@@ -78,10 +78,10 @@ func (c *Client) listen(channel string, handler func(event *sse.Event)) {
 				if event.Event == channel {
 					handler(event)
 				}
-			case e := <-heartbeat:
-				if e != nil {
-					logger.Debug(e.Event)
-				}
+			//case e := <-heartbeat:
+			//	if e != nil {
+			//		logger.Debug(e.Event)
+			//	}
 			case e := <-events:
 				logger.Error(e.Error)
 				// Close the SSE channel

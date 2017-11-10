@@ -85,8 +85,8 @@ func (c *Consumer) Run() {
 					logger.Error(err)
 					break
 				}
-			case confluent.PartitionEOF:
-				logger.Infof("Reached %v", e)
+			//case confluent.PartitionEOF:
+			//	logger.Infof("Reached %v", e)
 			case confluent.Error:
 				logger.Error(e.Error())
 			case *confluent.Stats:

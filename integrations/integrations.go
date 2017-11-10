@@ -21,13 +21,12 @@ var (
 	integrationsMap = NewMap()
 	syncMap         = make(map[string]*sync.RWMutex)
 	globalLock      sync.Mutex
-	cacheTimer      time.Timer
 )
 
 type Integrations interface {
 	GetIntegrations(appId string) (*map[string]string, error)
 	UpdateIntegrationsForApp(appId string) error
-	EventListener(event *sse.Event)
+	SSEEventListener(event *sse.Event)
 }
 
 /*
@@ -156,8 +155,9 @@ type SSEMessage struct {
 	AppID string `json:"appId"`
 }
 
-func (c *Client) EventListener(event *sse.Event) {
-	logger := log.WithField("function", "EventListener")
+func (c *Client) SSEEventListener(event *sse.Event) {
+	logger := log.WithField("function", "SSEEventListener")
+	logger.Info("Received SSE Event")
 	message := &SSEMessage{}
 	if err := json.Unmarshal(event.Data, message); err != nil {
 		logger.Error(err)
@@ -178,6 +178,6 @@ func (c *MockClient) GetIntegrations(appId string) (*map[string]string, error) {
 func (c *MockClient) UpdateIntegrationsForApp(appId string) error {
 	return nil
 }
-func (c *MockClient) EventListener(event *sse.Event) {
+func (c *MockClient) SSEEventListener(event *sse.Event) {
 
 }

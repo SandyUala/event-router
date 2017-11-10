@@ -129,7 +129,7 @@ func start(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 		// Register our integrations event listener with the SSE Client
-		sseClient.Subscribe("clickstream", integrationClient.EventListener)
+		sseClient.Subscribe("clickstream", integrationClient.SSEEventListener)
 	}
 
 	// Create our clickstreamProducer

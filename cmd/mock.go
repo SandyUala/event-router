@@ -95,7 +95,7 @@ func mock(cmd *cobra.Command, args []string) {
 			logger.Error(err)
 			os.Exit(1)
 		}
-		sseClient.Subscribe("clickstream", integration.EventListener)
+		sseClient.Subscribe("clickstream", integration.SSEEventListener)
 	}
 
 	// If we are persisting to cassandra, create the client and pass it to the producer
