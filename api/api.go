@@ -1,10 +1,8 @@
 package api
 
 import (
+	"context"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/DeanThompson/ginpprof"
@@ -30,7 +28,7 @@ func (c *Client) AppendRouteHandler(rh routes.RouteHandler) {
 	c.handlers = append(c.handlers, rh)
 }
 
-func (c *Client) Serve(port string, pprof bool) error {
+func (c *Client) Serve(port string, pprof bool, shutdownChan chan struct{}) error {
 	logger := log.WithFields(logrus.Fields{"function": "Serve"})
 	logger.Debug("Entered Serve")
 	var router *gin.Engine
@@ -70,12 +68,9 @@ func (c *Client) Serve(port string, pprof bool) error {
 		}
 	}()
 
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	for sig := range sigchan {
-		logger.Infof("Webserver caught signal %v: terminating", sig)
-		srv.Close()
+	for _ := range shutdownChan {
+		logger.Info("Webserver shutting down")
+		srv.Shutdown(context.Background())
 		return nil
 	}
 	logger.Info("Shutdown Webserver")

@@ -158,7 +158,7 @@ func mock(cmd *cobra.Command, args []string) {
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")
-	if err := apiClient.Serve(config.GetString(config.ServePort), true); err != nil {
+	if err := apiClient.Serve(config.GetString(config.ServePort), true, shutdownChannel); err != nil {
 		logger.Panic(err)
 	}
 	logger.Debug("Exiting event-router")

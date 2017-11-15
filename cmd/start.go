@@ -144,6 +144,8 @@ func start(cmd *cobra.Command, args []string) {
 		MasterTopic:      topic,
 		ShutdownChannel:  shutdownChannel,
 	}
+
+	// If we have retry enabled, create the DeadLetter Queue Client
 	if EnableRetry {
 		s3Client, err := s3.NewClient()
 		if err != nil {
@@ -177,6 +179,8 @@ func start(cmd *cobra.Command, args []string) {
 		logger.Error(err)
 		os.Exit(1)
 	}
+
+	// Shutdown Channel.  Captures SigINT and SigTERM events then closes the shutdown channel
 	shouldShutdown := false
 	go func() {
 		sigchan := make(chan os.Signal, 1)
@@ -186,6 +190,7 @@ func start(cmd *cobra.Command, args []string) {
 		shouldShutdown = true
 	}()
 
+	// Start the consumer.  It is on a loop so if it errors out we will restart.
 	go func() {
 		for {
 			if shouldShutdown {
@@ -206,7 +211,7 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Start the simple server
 	logger.Info("Starting HTTP Server")
-	if err := apiClient.Serve(config.GetString(config.ServePort), StartPPROF); err != nil {
+	if err := apiClient.Serve(config.GetString(config.ServePort), StartPPROF, shutdownChannel); err != nil {
 		logger.Error(err)
 	}
 	logger.Debug("Exiting event-router")

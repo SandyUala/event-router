@@ -55,6 +55,8 @@ func (c *Client) Subscribe(channel string, handler func(event *sse.Event)) {
 				logger.Error(err)
 				continue
 			}
+			// Sleep for 5 seconds
+			time.Sleep(time.Second * 5)
 		}
 	}()
 }
