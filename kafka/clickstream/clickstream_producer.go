@@ -44,6 +44,7 @@ type Message struct {
 	Integrations map[string]bool `json:"integrations"`
 }
 
+// NewProducer returns a new Kafka Producer setup with the given ProducerConfig
 func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 	cfgMap := &confluent.ConfigMap{
 		"bootstrap.servers":       cfg.BootstrapServers,
@@ -68,6 +69,7 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 	return cs, nil
 }
 
+// HandleMessage takes in a Kafka Message and Key as byte slices.
 func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	logger := log.WithField("function", "HandleMessage")
 	// Get the appId
@@ -79,7 +81,8 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	}
 	prom.BytesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Add(float64(len(message)))
 	prom.MessagesConsumed.With(prometheus.Labels{"appId": dat.AppId}).Inc()
-	ints, err := c.integrations.GetIntegrations(dat.AppId)
+	// Get enabled integrations for the app id
+	integrations, err := c.integrations.GetIntegrations(dat.AppId)
 	if err != nil {
 		// We had an error connecting to Houston.  Send the message to the retry topic
 		c.producer.ProduceChannel() <- &confluent.Message{
@@ -92,13 +95,13 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 		}
 		return errors.Wrap(err, "Error getting integrations for appID "+dat.AppId)
 	}
-	//logger.WithFields(logrus.Fields{"intsLen": len(*ints), "appId": dat.AppId}).Debug("Checking integrations")
-	if ints == nil || len(*ints) == 0 {
+	//logger.WithFields(logrus.Fields{"intsLen": len(*integrations), "appId": dat.AppId}).Debug("Checking integrations")
+	if integrations == nil || len(*integrations) == 0 {
 		// No integrations found
 		prom.MessagesWithNoIntegration.With(prometheus.Labels{"appId": dat.AppId}).Inc()
 		return nil
 	}
-	for name, integration := range *ints {
+	for name, integration := range *integrations {
 		// If the integration name is in the list of integrations from the message,
 		// and the message has it as false, don't send.  If there is no value, don't send
 		if ok, intEnabled := dat.Integrations[name]; ok && !intEnabled {
@@ -124,6 +127,8 @@ func (c *Producer) HandleMessage(message []byte, key []byte) error {
 	return nil
 }
 
+// handleEvents is an internal event handler that listens to the producers events
+// Runs in a loop waiting for the shutdown channel to close it.
 func (c *Producer) handleEvents() {
 	logger := log.WithField("function", "handleEvents")
 	logger.Debug("Entered handleEvents")
@@ -137,6 +142,7 @@ func (c *Producer) handleEvents() {
 		case ev := <-c.producer.Events():
 			switch e := ev.(type) {
 			case *confluent.Message:
+				// If there was an error producing the message, handle it!
 				if e.TopicPartition.Error != nil {
 					logger.Errorf("Delivery failed: %v", e.TopicPartition.Error)
 					dat := &Message{}
@@ -167,6 +173,7 @@ func (c *Producer) handleEvents() {
 	logger.Debug("exiting handleEvents")
 }
 
+// Close will close the Kafka Producer, flush any remaining messages, and report on any messages that failed to flush
 func (c *Producer) Close() {
 	logger := log.WithField("function", "Close")
 	logger.Info("Closing messageHandler")

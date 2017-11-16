@@ -48,11 +48,13 @@ func (c *Client) Subscribe(channel string, handler func(event *sse.Event)) {
 			sse.WithHTTPHeaders(map[string]string{
 				"authorization": authToken,
 			})
+			exitChan := make(chan struct{})
 			// Start listening
-			c.listen(channel, handler)
+			c.listen(channel, handler, exitChan)
 			logger.Info("Starting SSE Client")
 			if err := sse.Listen(); err != nil {
 				logger.Error(err)
+				close(exitChan)
 				continue
 			}
 			// Sleep for 5 seconds
@@ -61,7 +63,7 @@ func (c *Client) Subscribe(channel string, handler func(event *sse.Event)) {
 	}()
 }
 
-func (c *Client) listen(channel string, handler func(event *sse.Event)) {
+func (c *Client) listen(channel string, handler func(event *sse.Event), exitChannel chan struct{}) {
 	logger := log.WithField("function", "listen")
 	logger.Info("Starting SSE Listeners")
 	go func() {
@@ -90,6 +92,10 @@ func (c *Client) listen(channel string, handler func(event *sse.Event)) {
 				sse.Close()
 				return
 			case <-c.shutdownChan:
+				c.shouldShutdown = true
+				sse.Close()
+				return
+			case <-exitChannel:
 				c.shouldShutdown = true
 				sse.Close()
 				return
