@@ -16,18 +16,17 @@ const (
 
 	Debug = "DEBUG"
 
-	BootstrapServers              = "BOOTSTRAP_SERVERS"
+	KafkaBrokers                  = "KAFKA_BROKERS"
 	ServePort                     = "SERVE_PORT"
 	KafkaGroupID                  = "KAFKA_GROUP_ID"
 	KafkaIngestionTopic           = "KAFKA_INGESTION_TOPIC"
 	SSEURL                        = "SSE_URL"
 	KafkaProducerFlushTimeoutMS   = "KAFKA_PRODUCER_FLUSH_TIMEOUT_MS"
 	KafkaProducerMessageTimeoutMS = "KAFKA_PRODUCER_MESSAGE_TIMEOUT_MS"
-	MaxRetries                    = "MAX_RETRIES"
-	RetryTopic                    = "RETRY_TOPIC"
+	RetryTopic                    = "KAFKA_RETRY_TOPIC"
 	ClickstreamRetryS3Bucket      = "CLICKSTREAM_RETRY_S3_BUCKET"
 	ClickstreamRetryS3PathPrefix  = "CLICKSTREAM_RETRY_S3_PATH_PREFIX"
-	ClickstreamRetryFlushTimeout  = "CLICKSTREAM_RETRY_TIMEOUT"
+	ClickstreamRetryFlushTimeout  = "CLICKSTREAM_RETRY_FLUSH_TIMEOUT_MIN"
 	ClickstreamRetryMaxQueue      = "CLICKSTREAM_RETRY_MAX_QUEUE"
 	CacheTTLMin                   = "CACHE_TTL_MIN"
 	DisableCacheTTL               = "DISABLE_CACHE_TTL"
@@ -46,7 +45,7 @@ var (
 	debug = false
 
 	requiredEnvs = []string{
-		BootstrapServers,
+		KafkaBrokers,
 		HoustonAPIURL,
 		KafkaIngestionTopic,
 		KafkaGroupID,
@@ -62,14 +61,13 @@ var (
 
 	allEnvs = []string{
 		Debug,
-		BootstrapServers,
+		KafkaBrokers,
 		ServePort,
 		KafkaGroupID,
 		KafkaIngestionTopic,
 		SSEURL,
 		KafkaProducerFlushTimeoutMS,
 		KafkaProducerMessageTimeoutMS,
-		MaxRetries,
 		ClickstreamRetryS3Bucket,
 		ClickstreamRetryS3PathPrefix,
 		HoustonAPIURL,
@@ -132,7 +130,6 @@ func setDefaults() {
 	viper.SetDefault(ServePort, "8080")
 	viper.SetDefault(KafkaProducerFlushTimeoutMS, 1000)
 	viper.SetDefault(KafkaProducerMessageTimeoutMS, 5000)
-	viper.SetDefault(MaxRetries, 2)
 	viper.SetDefault(CacheTTLMin, 5)
 	viper.SetDefault(DisableCacheTTL, false)
 }

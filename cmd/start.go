@@ -105,7 +105,7 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	// Grab some global config values
-	bootstrapServers := config.GetString(config.BootstrapServers)
+	bootstrapServers := config.GetString(config.KafkaBrokers)
 	topic := config.GetString(config.KafkaIngestionTopic)
 	config.SetBool(config.KafakDebug, KafkaDebug)
 	config.SetBool(config.Retry, EnableRetry)

@@ -63,7 +63,7 @@ func mock(cmd *cobra.Command, args []string) {
 	// Setup api debug level (for gin logging)
 	api.Debug = config.GetBool(config.Debug)
 
-	bootstrapServers := config.GetString(config.BootstrapServers)
+	bootstrapServers := config.GetString(config.KafkaBrokers)
 	topic := config.GetString(config.KafkaIngestionTopic)
 
 	// Shutdown Channel
