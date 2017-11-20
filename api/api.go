@@ -68,7 +68,7 @@ func (c *Client) Serve(port string, pprof bool, shutdownChan chan struct{}) erro
 		}
 	}()
 
-	for _ := range shutdownChan {
+	for range shutdownChan {
 		logger.Info("Webserver shutting down")
 		srv.Shutdown(context.Background())
 		return nil
