@@ -41,6 +41,7 @@ func init() {
 	MockCmd.Flags().Int64Var(&runID, "run-id", 0, "run id")
 	MockCmd.Flags().StringVar(&cassandraKeyspace, "cassandra-keyspace", "mock", "cassandra keyspace")
 	MockCmd.Flags().BoolVar(&EnableRetry, "retry", false, "enable retry logic")
+	MockCmd.PersistentFlags().BoolVar(&DisableSSE, "disable-sse", true, "disables SSE client")
 }
 
 func mock(cmd *cobra.Command, args []string) {
