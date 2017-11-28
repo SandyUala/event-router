@@ -135,7 +135,7 @@ func setDefaults() {
 }
 
 func verifyRequiredEnvVars() error {
-	errs := []string{}
+	errs := make([]string, 0)
 	for _, envVar := range requiredEnvs {
 		if len(GetString(envVar)) == 0 {
 			errs = append(errs, pkg.GetRequiredEnvErrorString(Prefix, envVar))

@@ -27,9 +27,10 @@ Flags:
   -h, --help          help for event-router
 
 Use "event-router [command] --help" for more information about a command.
+
 ```
 ```
-$ event-router start
+$ event-router start -h
 Starts the event-router
 
 Usage:
@@ -37,8 +38,12 @@ Usage:
 
 Flags:
       --disable-cache-ttl   disables cache ttl
-  -h, --help    help for start
-      --retry   enables retry logic
+  -h, --help                help for start
+      --kafka-debug         enable kafka debuging
+      --pprof               enables pprof
+  -p, --profile string      enable cpu profile and set file location
+      --retry               enables retry logic
+  -t, --trace string        enable trace and set file location
 
 Global Flags:
       --disable-sse   disables SSE client
@@ -49,7 +54,7 @@ Global Flags:
  * `ER_DEBUG`
    * Optional, Default: false
    * Enables debug logging
- * `ER_BOOTSTRAP_SERVERS`
+ * `ER_KAFKA_BROKERS`
    * Required
    * Format: IP/URL with Port, separated by comma (`127.0.0.1:9090,127.0.1.1:9090`)
  * `ER_SERVER_PORT`
@@ -67,18 +72,21 @@ Global Flags:
  * `ER_KAFKA_PRODUCER_MESSAGE_TIMOUT_MS`
    * Optional, Default: `5000`
    * Message Timeout for Kafka
- * `ER_MAX_RETRIES`
-   * Optional, Default: `2`
-   * Number of times the producer will retry a failed message.  Does not take into account librdkafka's built in retry functionality (which is 2 by default)
- * `ER_CLICKSTREAM_RETRY_TOPIC`
-   * Required if RETRY is enabled
-   * Kafka Topic that retry messages are produced too
+ * `ER_KAFKA_RETRY_TOPIC`
+   * Required
+   * Kafka Topic messagaes are sent to when they are retried
  * `ER_CLICKSTREAM_RETRY_S3_BUCKET`
    * Required if RETRY is enabled
    * S3 Bucket messages are sent to if they are not successfully sent after retrying.  File name is the `messageId` and contents is json.
  * `CLICKSTREAM_RETRY_S3_PATH_PREFIX`
    * Optional
    * Path Prefix used when saving the message to S3
+ * `ER_CLICKSTREAM_RETRY_FLUSH_TIMEOUT_MIN`
+   * Required if retry is enabled
+   * Retry Cache Flush timeout in minutes.  Items in the retry cache will be flushed at this interval
+ * `ER_CLICKSTREAM_RETRY_MAX_QUEUE`
+   * Required if retry is enabled
+   * Retry Cache will flush once this max queue has been hit.
  * `ER_HOUSTON_API_URL`
    * Required
    * Houston API URL
