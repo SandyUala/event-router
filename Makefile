@@ -17,7 +17,8 @@ dep:
 buildit:
 	go build -tags static -o event-router main.go
 
-build: staticcheck gosimple buildit
+# build: staticcheck gosimple buildit
+build: buildit
 
 install: staticcheck gosimple
 	go install -tags static
