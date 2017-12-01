@@ -3,7 +3,7 @@ package sse
 import (
 	"time"
 
-	"github.com/astronomerio/clickstream-event-router/houston"
+	"github.com/astronomerio/cs-event-router/houston"
 	"github.com/astronomerio/sse"
 	"github.com/sirupsen/logrus"
 )

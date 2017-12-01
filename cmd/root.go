@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/astronomerio/clickstream-event-router/config"
+	"github.com/astronomerio/cs-event-router/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -7,9 +7,9 @@ import (
 
 	"time"
 
-	"github.com/astronomerio/clickstream-event-router/config"
-	"github.com/astronomerio/clickstream-event-router/houston"
-	"github.com/astronomerio/clickstream-event-router/pkg/prom"
+	"github.com/astronomerio/cs-event-router/config"
+	"github.com/astronomerio/cs-event-router/houston"
+	"github.com/astronomerio/cs-event-router/pkg/prom"
 	"github.com/astronomerio/sse"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/astronomerio/clickstream-event-router/kafka"
+	"github.com/astronomerio/cs-event-router/kafka"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"

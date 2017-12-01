@@ -12,8 +12,8 @@ import (
 
 	"sync"
 
-	"github.com/astronomerio/clickstream-event-router/config"
-	"github.com/astronomerio/clickstream-event-router/pkg"
+	"github.com/astronomerio/cs-event-router/config"
+	"github.com/astronomerio/cs-event-router/pkg"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

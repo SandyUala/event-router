@@ -12,16 +12,16 @@ import (
 
 	"runtime/trace"
 
-	"github.com/astronomerio/clickstream-event-router/api"
-	"github.com/astronomerio/clickstream-event-router/api/v1"
-	"github.com/astronomerio/clickstream-event-router/config"
-	"github.com/astronomerio/clickstream-event-router/deadletterqueue"
-	"github.com/astronomerio/clickstream-event-router/houston"
-	"github.com/astronomerio/clickstream-event-router/integrations"
-	"github.com/astronomerio/clickstream-event-router/kafka/clickstream"
-	"github.com/astronomerio/clickstream-event-router/pkg"
-	"github.com/astronomerio/clickstream-event-router/s3"
-	"github.com/astronomerio/clickstream-event-router/sse"
+	"github.com/astronomerio/cs-event-router/api"
+	"github.com/astronomerio/cs-event-router/api/v1"
+	"github.com/astronomerio/cs-event-router/config"
+	"github.com/astronomerio/cs-event-router/deadletterqueue"
+	"github.com/astronomerio/cs-event-router/houston"
+	"github.com/astronomerio/cs-event-router/integrations"
+	"github.com/astronomerio/cs-event-router/kafka/clickstream"
+	"github.com/astronomerio/cs-event-router/pkg"
+	"github.com/astronomerio/cs-event-router/s3"
+	"github.com/astronomerio/cs-event-router/sse"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -82,7 +82,7 @@ func start(cmd *cobra.Command, args []string) {
 		}
 		logger.Info("Enabling Tracing")
 		// Trace
-		t, err := os.Create(StartTrace + "/clickstream-event-router.trace")
+		t, err := os.Create(StartTrace + "/cs-event-router.trace")
 		if err != nil {
 			logger.Fatal(err)
 		}

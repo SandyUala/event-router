@@ -11,4 +11,4 @@ export ER_SSE_URL=https://houston.astronomer.io/broadcast
 export ER_SSE_AUTH="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU5OWFmMzlhMDg5N2E3MDAwMWVlN2VlNSIsInNVIjp0cnVlLCJpYXQiOjE1MDc5MTM4ODAsImV4cCI6MTUwODUxODY4MH0.8d76ZYaNdQliCFtUZYgE31iXVA3hDB9MePvaXX3pzp0"
 
 go build
-./clickstream-event-router mock "S3 Event Logs:s3-event-logs"
+./cs-event-router mock "S3 Event Logs:s3-event-logs"

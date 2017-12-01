@@ -1,11 +1,12 @@
-IMAGE_NAME=astronomerio/clickstream-event-router
+IMAGE_NAME=astronomerio/cs-event-router
 
+GIT_COMMIT=$(shell git rev-parse --short HEAD)
 GOTAGS ?= event-router
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
-VERSION ?= latest
+VERSION ?= SNAPSHOT-$(GIT_COMMIT)
 
 all: build
 
@@ -24,10 +25,13 @@ install: staticcheck gosimple
 run:
 	go run cmd/main.go
 
-image:
+build-image:
 	docker build -t $(IMAGE_NAME):$(VERSION) .
 
-push: image
+tag-latest:
+	docker tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
+
+push-image: image
 	docker push $(IMAGE_NAME):$(VERSION)
 
 format:
@@ -64,6 +68,6 @@ tools:
 
 clean:
 	-rm event-router
-	-docker rmi `docker images | grep "astronomerio/clickstream-event-router" | awk '{print $3}'`
+	-docker rmi `docker images | grep "astronomerio/cs-event-router" | awk '{print $3}'`
 
 .PHONY : clean
