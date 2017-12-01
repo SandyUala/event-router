@@ -3,7 +3,7 @@ package clickstream
 import (
 	"testing"
 
-	"github.com/astronomerio/clickstream-event-router/integrations"
+	"github.com/astronomerio/cs-event-router/integrations"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/astronomerio/clickstream-event-router/pkg"
+	"github.com/astronomerio/cs-event-router/pkg"
 	"github.com/astronomerio/viper"
 	"github.com/sirupsen/logrus"
 )
