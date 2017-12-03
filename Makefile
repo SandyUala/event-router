@@ -20,8 +20,15 @@ buildit:
 # build: staticcheck gosimple buildit
 build: buildit
 
-install: staticcheck gosimple
-	go install -tags static
+# install: staticcheck gosimple
+# 	go install -tags static
+
+install:
+	mkdir -p $(DESTDIR)
+	cp event-router $(DESTDIR)
+
+uninstall:
+	rm -rf $(DESTDIR)
 
 run:
 	go run cmd/main.go
