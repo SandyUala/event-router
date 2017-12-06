@@ -23,7 +23,7 @@ build: buildit
 # install: staticcheck gosimple
 # 	go install -tags static
 
-install:
+install: build
 	mkdir -p $(DESTDIR)
 	cp event-router $(DESTDIR)
 
