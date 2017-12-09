@@ -7,9 +7,9 @@ import (
 
 	"time"
 
-	"github.com/astronomerio/cs-event-router/config"
-	"github.com/astronomerio/cs-event-router/houston"
-	"github.com/astronomerio/cs-event-router/pkg/prom"
+	"github.com/astronomerio/event-router/config"
+	"github.com/astronomerio/event-router/houston"
+	"github.com/astronomerio/event-router/pkg/prom"
 	"github.com/astronomerio/sse"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"

@@ -5,11 +5,11 @@ import (
 
 	"fmt"
 
-	"github.com/astronomerio/cs-event-router/cassandra"
-	"github.com/astronomerio/cs-event-router/config"
-	"github.com/astronomerio/cs-event-router/deadletterqueue"
-	"github.com/astronomerio/cs-event-router/integrations"
-	"github.com/astronomerio/cs-event-router/pkg/prom"
+	"github.com/astronomerio/event-router/cassandra"
+	"github.com/astronomerio/event-router/config"
+	"github.com/astronomerio/event-router/deadletterqueue"
+	"github.com/astronomerio/event-router/integrations"
+	"github.com/astronomerio/event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"

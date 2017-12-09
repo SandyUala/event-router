@@ -11,8 +11,8 @@ import (
 
 	"strconv"
 
-	"github.com/astronomerio/cs-event-router/pkg/prom"
-	"github.com/astronomerio/cs-event-router/s3"
+	"github.com/astronomerio/event-router/pkg/prom"
+	"github.com/astronomerio/event-router/s3"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"

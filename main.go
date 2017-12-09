@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/astronomerio/cs-event-router/cmd"
+	"github.com/astronomerio/event-router/cmd"
 	"github.com/sirupsen/logrus"
 )
 
