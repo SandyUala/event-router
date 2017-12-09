@@ -3,7 +3,7 @@ package v1
 import (
 	"net/http"
 
-	"github.com/astronomerio/cs-event-router/integrations"
+	"github.com/astronomerio/event-router/integrations"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,8 +1,8 @@
 package clickstream
 
 import (
-	"github.com/astronomerio/cs-event-router/kafka"
-	"github.com/astronomerio/cs-event-router/pkg/prom"
+	"github.com/astronomerio/event-router/kafka"
+	"github.com/astronomerio/event-router/pkg/prom"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

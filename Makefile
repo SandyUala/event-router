@@ -1,4 +1,4 @@
-IMAGE_NAME=astronomerio/cs-event-router
+IMAGE_NAME=astronomerio/event-router
 
 GIT_COMMIT=$(shell git rev-parse --short HEAD)
 GOTAGS ?= event-router
@@ -76,6 +76,6 @@ tools:
 
 clean:
 	-rm event-router
-	-docker rmi `docker images | grep "astronomerio/cs-event-router" | awk '{print $3}'`
+	-docker rmi `docker images | grep "astronomerio/event-router" | awk '{print $3}'`
 
 .PHONY : clean

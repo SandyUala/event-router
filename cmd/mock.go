@@ -5,14 +5,14 @@ import (
 
 	"os"
 
-	"github.com/astronomerio/cs-event-router/api"
-	"github.com/astronomerio/cs-event-router/api/v1"
-	"github.com/astronomerio/cs-event-router/cassandra"
-	"github.com/astronomerio/cs-event-router/config"
-	"github.com/astronomerio/cs-event-router/houston"
-	"github.com/astronomerio/cs-event-router/integrations"
-	"github.com/astronomerio/cs-event-router/kafka/clickstream"
-	"github.com/astronomerio/cs-event-router/sse"
+	"github.com/astronomerio/event-router/api"
+	"github.com/astronomerio/event-router/api/v1"
+	"github.com/astronomerio/event-router/cassandra"
+	"github.com/astronomerio/event-router/config"
+	"github.com/astronomerio/event-router/houston"
+	"github.com/astronomerio/event-router/integrations"
+	"github.com/astronomerio/event-router/kafka/clickstream"
+	"github.com/astronomerio/event-router/sse"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

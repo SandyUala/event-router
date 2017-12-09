@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/DeanThompson/ginpprof"
-	"github.com/astronomerio/cs-event-router/api/routes"
+	"github.com/astronomerio/event-router/api/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
