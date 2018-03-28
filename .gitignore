@@ -1,6 +1,2 @@
 .idea
-
-prometheus
-event-router
-pprof
 event-router

@@ -1,30 +1,19 @@
 package cmd
 
 import (
-	"github.com/astronomerio/event-router/config"
+	"github.com/astronomerio/event-router/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var (
-	log     = logrus.WithField("package", "cmd")
-	RootCmd = &cobra.Command{
-		Use:   "event-router",
-		Short: "event-router will route incoming events from analytics.js to the correct integration",
-	}
-
-	DisableSSE bool
-)
-
-func init() {
-	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().BoolVar(&DisableSSE, "disable-sse", false, "disables SSE client")
+// RootCmd is the root cobra command
+var RootCmd = &cobra.Command{
+	Use: "event-router",
+	Run: start,
 }
 
-func initConfig() {
-	config.Initialize(
-		&config.InitOptions{
-			EnableRetry: EnableRetry,
-		},
-	)
+func start(cmd *cobra.Command, args []string) {
+	log := logging.GetLogger().WithFields(logrus.Fields{"package": "cmd"})
+
+	log.Info("fuck")
 }
