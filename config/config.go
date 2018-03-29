@@ -28,7 +28,7 @@ func init() {
 		log.Printf("Failed reading config file: %s\n", err)
 	}
 
-	viper.SetEnvPrefix("event-router")
+	viper.SetEnvPrefix("ER")
 	viper.AutomaticEnv()
 
 	if err := viper.Unmarshal(&AppConfig); err != nil {
