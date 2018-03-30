@@ -22,4 +22,4 @@ ENV GIN_MODE=release
 EXPOSE 9091
 
 # Use ENTRYPOINT in production images
-CMD ["./event-router"]
+CMD ["./event-router", "start"]
