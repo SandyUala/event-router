@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/astronomerio/event-router/api"
+	"github.com/astronomerio/event-router/api/v1"
 	"github.com/astronomerio/event-router/config"
 	"github.com/astronomerio/event-router/logging"
 	"github.com/sirupsen/logrus"
@@ -43,7 +44,8 @@ func start(cmd *cobra.Command, args []string) {
 	}
 
 	apiServer := api.NewServer().
-		WithConfig(apiServerConfig)
+		WithConfig(apiServerConfig).
+		WithRouteHandler(v1.NewPrometheusHandler())
 
 	apiServer.Run(shutdownChan)
 	log.Info("Finished")
