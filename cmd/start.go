@@ -1,21 +1,50 @@
 package cmd
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/astronomerio/event-router/api"
+	"github.com/astronomerio/event-router/config"
 	"github.com/astronomerio/event-router/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var startCmd = &cobra.Command{
-	Use: "start",
-	Run: start,
-}
+var (
+	log      = logging.GetLogger().WithFields(logrus.Fields{"package": "api"})
+	startCmd = &cobra.Command{
+		Use: "start",
+		Run: start,
+	}
+)
 
 func init() {
 	RootCmd.AddCommand(startCmd)
 }
 
 func start(cmd *cobra.Command, args []string) {
-	log := logging.GetLogger().WithFields(logrus.Fields{"package": "cmd"})
-	log.Info("fuck")
+	appConfig := config.Get()
+	appConfig.Print()
+
+	// Listen for system signals to shutdown and close our shutdown channel
+	shutdownChan := make(chan struct{})
+	go func() {
+		sc := make(chan os.Signal)
+		signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGSTOP)
+		<-sc
+		close(shutdownChan)
+	}()
+
+	apiServerConfig := &api.ServerConfig{
+		APIInterface: appConfig.APIInterface,
+		APIPort:      appConfig.APIPort,
+	}
+
+	apiServer := api.NewServer().
+		WithConfig(apiServerConfig)
+
+	apiServer.Run(shutdownChan)
+	log.Info("Finished")
 }

@@ -10,8 +10,10 @@ import (
 
 // Configuration is a stuct to hold event-router configs
 type Configuration struct {
-	DebugMode bool
-	LogFormat string
+	DebugMode    bool
+	LogFormat    string
+	APIInterface string
+	APIPort      string
 }
 
 // AppConfig is a global instance of Configuration
@@ -39,6 +41,8 @@ func init() {
 func setDefaults() {
 	viper.SetDefault("DebugMode", false)
 	viper.SetDefault("LogFormat", "json")
+	viper.SetDefault("APIInterface", "0.0.0.0")
+	viper.SetDefault("APIPort", "8081")
 }
 
 // Get returns the config
