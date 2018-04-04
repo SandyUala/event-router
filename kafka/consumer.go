@@ -23,21 +23,30 @@ type ConsumerConfig struct {
 	GroupID          string
 	Topic            string
 	ShutdownChannel  chan struct{}
+	DebugMode        bool
 }
 
 // NewConsumer creates a new kafka consumer
 func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
-	consumer, err := confluent.NewConsumer(&confluent.ConfigMap{
-		"bootstrap.servers":               cfg.BootstrapServers,
-		"group.id":                        cfg.GroupID,
-		"session.timeout.ms":              6000,
-		"go.events.channel.enable":        true,
-		"go.application.rebalance.enable": true,
-		"enable.auto.commit":              true,
-		"statistics.interval.ms":          500,
-		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"},
-	})
+	// Create consumer config map
+	cfgMap := &confluent.ConfigMap{
+		"bootstrap.servers":        cfg.BootstrapServers,
+		"group.id":                 cfg.GroupID,
+		"session.timeout.ms":       6000,
+		"go.events.channel.enable": true,
+		"enable.auto.commit":       true,
+		"statistics.interval.ms":   500,
+		"default.topic.config":     confluent.ConfigMap{"auto.offset.reset": "earliest"},
+		// "go.application.rebalance.enable": true,
+	}
 
+	// Set Kafka debugging if in DebugMode
+	if cfg.DebugMode == true {
+		cfgMap.SetKey("debug", "protocol,topic,msg")
+	}
+
+	// Create the new consumer
+	consumer, err := confluent.NewConsumer(cfgMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating consumer")
 	}
@@ -46,4 +55,37 @@ func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
 		config:   cfg,
 		consumer: consumer,
 	}, nil
+}
+
+// Run subscribes to topics and receives messages
+func (c *Consumer) Run() {
+	log.Info("Starting Kafka consumer")
+
+	// Start the subscription
+	if err := c.consumer.SubscribeTopics([]string{c.config.Topic}, nil); err != nil {
+		log.Fatal("Error subscribing to topic ", err)
+	}
+
+	// Close consumer when we exit
+	defer c.Close()
+
+	// Loop until we are notified on the ShutdownChannel
+	for {
+		select {
+		case <-c.config.ShutdownChannel:
+			log.Info("Kafka consumer shutting down")
+			break
+		case ev := <-c.consumer.Events():
+			switch e := ev.(type) {
+			case *confluent.Message:
+				c.config.MessageHandler.HandleMessage(e.Value, e.Key)
+			}
+		}
+	}
+}
+
+// Close cleans up and shutsdown the consumer
+func (c *Consumer) Close() {
+	c.consumer.Close()
+	log.info("Consumer has been closed")
 }

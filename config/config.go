@@ -10,39 +10,34 @@ import (
 
 // Configuration is a stuct to hold event-router configs
 type Configuration struct {
-	DebugMode    bool
-	LogFormat    string
-	APIInterface string
-	APIPort      string
+	DebugMode       bool   `mapstructure:"DEBUG_MODE"`
+	LogFormat       string `mapstructure:"LOG_FORMAT"`
+	APIInterface    string `mapstructure:"API_INTERFACE"`
+	APIPort         string `mapstructure:"API_PORT"`
+	KafkaBrokers    string `mapstructure:"KAFKA_BROKERS"`
+	KafkaGroupID    string `mapstructure:"KAFKA_GROUP_ID"`
+	KafkaInputTopic string `mapstructure:"KAFKA_INPUT_TOPIC"`
 }
 
 // AppConfig is a global instance of Configuration
 var AppConfig Configuration
 
 func init() {
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-
-	AppConfig = Configuration{}
-
-	setDefaults()
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Failed reading config file: %s\n", err)
-	}
-
 	viper.SetEnvPrefix("ER")
 	viper.AutomaticEnv()
 
+	viper.SetDefault("DEBUG_MODE", false)
+	viper.SetDefault("LOG_FORMAT", "json")
+	viper.SetDefault("API_INTERFACE", "0.0.0.0")
+	viper.SetDefault("API_PORT", "8082")
+	viper.SetDefault("KAFKA_BROKERS", "")
+	viper.SetDefault("KAFKA_GROUP_ID", "ap-event-router")
+	viper.SetDefault("KAFKA_INPUT_TOPIC", "")
+
+	AppConfig = Configuration{}
 	if err := viper.Unmarshal(&AppConfig); err != nil {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
-}
-
-func setDefaults() {
-	viper.SetDefault("DebugMode", false)
-	viper.SetDefault("LogFormat", "json")
-	viper.SetDefault("APIInterface", "0.0.0.0")
-	viper.SetDefault("APIPort", "8081")
 }
 
 // Get returns the config

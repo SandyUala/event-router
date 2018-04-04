@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -40,19 +39,19 @@ func start(cmd *cobra.Command, args []string) {
 		close(shutdownChan)
 	}()
 
-	// consumer, err := kafka.NewConsumer(&kafka.ConsumerConfig{})
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	// Create a stream consumer
+	consumer, err := kafka.NewConsumer(&kafka.ConsumerConfig{
+		BootstrapServers: appConfig.KafkaBrokers,
+		GroupID:          appConfig.KafkaGroupID,
+		Topic:            appConfig.KafkaInputTopic,
+		DebugMode:        appConfig.DebugMode,
+	})
 
-	// fmt.Println(consumer)
-
-	producer, err := kafka.NewProducer(&kafka.ProducerConfig{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(producer)
+	go consumer.Run()
 
 	apiServerConfig := &api.ServerConfig{
 		APIInterface: appConfig.APIInterface,

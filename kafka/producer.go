@@ -35,3 +35,7 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 		producer: producer,
 	}, nil
 }
+
+// HandleMessage forwards the event to the appropriate destination topic
+func (p *Producer) HandleMessage(message, key []byte) error {
+}
