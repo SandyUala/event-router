@@ -9,10 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	log = logging.GetLogger().WithFields(logrus.Fields{"package": "kafka"})
-)
-
 // Consumer is a kafka consumer
 type Consumer struct {
 	config   *ConsumerConfig
@@ -66,6 +62,8 @@ func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
 
 // Read subscribes to topics and receives messages
 func (c *Consumer) Read(d []byte) (int, error) {
+	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
+
 	select {
 	case <-c.config.ShutdownChannel:
 		log.Info("Kafka consumer shutting down")
@@ -82,6 +80,8 @@ func (c *Consumer) Read(d []byte) (int, error) {
 
 // Close cleans up and shutsdown the consumer
 func (c *Consumer) Close() {
+	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
+
 	c.consumer.Close()
 	log.Info("Consumer has been closed")
 }

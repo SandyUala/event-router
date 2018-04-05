@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 
 	v1types "github.com/astronomerio/event-api/types/v1"
+	"github.com/astronomerio/event-router/logging"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Producer is a kafka producer
@@ -51,6 +53,8 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 
 // Write forwards events to destination topics
 func (p *Producer) Write(d []byte) (int, error) {
+	log := logging.GetLogger(logrus.Fields{"package": "api"})
+
 	// Unmarshal to type
 	ev := v1types.Event{}
 	err := json.Unmarshal(d, &ev)

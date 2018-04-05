@@ -16,7 +16,6 @@ import (
 )
 
 var (
-	log      = logging.GetLogger().WithFields(logrus.Fields{"package": "api"})
 	startCmd = &cobra.Command{
 		Use: "start",
 		Run: start,
@@ -28,6 +27,8 @@ func init() {
 }
 
 func start(cmd *cobra.Command, args []string) {
+	log := logging.GetLogger(logrus.Fields{"package": "api"})
+
 	appConfig := config.Get()
 	appConfig.Print()
 

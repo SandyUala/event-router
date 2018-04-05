@@ -10,10 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	log = logging.GetLogger().WithFields(logrus.Fields{"package": "api"})
-)
-
 // Server is an API client
 type Server struct {
 	handlers []routes.RouteHandler
@@ -45,7 +41,7 @@ func (s *Server) WithRouteHandler(rh routes.RouteHandler) *Server {
 
 // Run starts the webserver
 func (s *Server) Run(shutdownChan <-chan struct{}) {
-	log.Info("Starting webserver")
+	log := logging.GetLogger(logrus.Fields{"package": "api"})
 
 	router := gin.Default()
 	for _, handler := range s.handlers {
