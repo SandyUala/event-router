@@ -32,7 +32,7 @@ services:
     depends_on:
       - kafka
     environment:
-      EA_DEBUG_MODE: "true"
+      EA_DEBUG_MODE: "false"
       EA_KAFKA_BROKERS: "kafka:9092"
       EA_KAFKA_TOPIC: "ingestion"
     ports:
@@ -47,7 +47,7 @@ services:
     depends_on:
       - kafka
     environment:
-      ER_DEBUG_MODE: "true"
+      ER_DEBUG_MODE: "false"
       ER_KAFKA_BROKERS: "kafka:9092"
       ER_KAFKA_INPUT_TOPIC: "ingestion"
     ports:

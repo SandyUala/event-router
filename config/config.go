@@ -29,7 +29,7 @@ func init() {
 	viper.SetDefault("DEBUG_MODE", false)
 	viper.SetDefault("LOG_FORMAT", "json")
 	viper.SetDefault("API_INTERFACE", "0.0.0.0")
-	viper.SetDefault("API_PORT", "8082")
+	viper.SetDefault("API_PORT", "8081")
 	viper.SetDefault("KAFKA_BROKERS", "")
 	viper.SetDefault("KAFKA_GROUP_ID", "ap-event-router")
 	viper.SetDefault("KAFKA_INPUT_TOPIC", "")

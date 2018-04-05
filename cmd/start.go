@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -45,13 +46,33 @@ func start(cmd *cobra.Command, args []string) {
 		GroupID:          appConfig.KafkaGroupID,
 		Topic:            appConfig.KafkaInputTopic,
 		DebugMode:        appConfig.DebugMode,
+		ShutdownChannel:  shutdownChan,
 	})
-
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go consumer.Run()
+	// file, err := os.Create("./records.txt")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// defer file.Close()
+
+	producer, err := kafka.NewProducer(&kafka.ProducerConfig{
+		BootstrapServers: appConfig.KafkaBrokers,
+		DebugMode:        appConfig.DebugMode,
+		ShutdownChannel:  shutdownChan,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		if _, err = io.Copy(producer, consumer); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	apiServerConfig := &api.ServerConfig{
 		APIInterface: appConfig.APIInterface,

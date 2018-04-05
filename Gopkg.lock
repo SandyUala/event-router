@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/araddon/dateparse"
+  packages = ["."]
+  revision = "1d3842569f46602b6885966f0b025c0a3d0d9442"
+
+[[projects]]
+  branch = "initial-ee"
+  name = "github.com/astronomerio/event-api"
+  packages = ["types/v1"]
+  revision = "ea4a1a961f43217db4e92e1d3b6aed2aa49b612b"
+
+[[projects]]
   name = "github.com/astronomerio/phoenix"
   packages = ["api/routes"]
   revision = "be87eb871dbd1c5e3f8b865b72d84fe5f3d003bb"
@@ -63,6 +75,12 @@
     "json/token"
   ]
   revision = "f40e974e75af4e271d97ce0fc917af5898ae7bda"
+
+[[projects]]
+  name = "github.com/imdario/mergo"
+  packages = ["."]
+  revision = "9d5f1277e9a8ed20c3684bda8fde67c05628518c"
+  version = "v0.3.4"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -236,6 +254,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a458b5e51485329f718d8f7ee02328ea742664d15bb5777d81ed8305c2128165"
+  inputs-digest = "41f79b51dac6c5e93657a10cb3452c4118bd86b4f59edefd2a9f90528156f28b"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,6 +1,8 @@
 package kafka
 
 import (
+	"io"
+
 	"github.com/astronomerio/event-router/logging"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
@@ -46,46 +48,40 @@ func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
 	}
 
 	// Create the new consumer
-	consumer, err := confluent.NewConsumer(cfgMap)
+	c, err := confluent.NewConsumer(cfgMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error creating consumer")
 	}
 
+	// Start the subscription
+	if err := c.SubscribeTopics([]string{cfg.Topic}, nil); err != nil {
+		return nil, errors.Wrap(err, "Error subscribing to topic ")
+	}
+
 	return &Consumer{
 		config:   cfg,
-		consumer: consumer,
+		consumer: c,
 	}, nil
 }
 
-// Run subscribes to topics and receives messages
-func (c *Consumer) Run() {
-	log.Info("Starting Kafka consumer")
-
-	// Start the subscription
-	if err := c.consumer.SubscribeTopics([]string{c.config.Topic}, nil); err != nil {
-		log.Fatal("Error subscribing to topic ", err)
-	}
-
-	// Close consumer when we exit
-	defer c.Close()
-
-	// Loop until we are notified on the ShutdownChannel
-	for {
-		select {
-		case <-c.config.ShutdownChannel:
-			log.Info("Kafka consumer shutting down")
-			break
-		case ev := <-c.consumer.Events():
-			switch e := ev.(type) {
-			case *confluent.Message:
-				c.config.MessageHandler.HandleMessage(e.Value, e.Key)
-			}
+// Read subscribes to topics and receives messages
+func (c *Consumer) Read(d []byte) (int, error) {
+	select {
+	case <-c.config.ShutdownChannel:
+		log.Info("Kafka consumer shutting down")
+		return 0, io.EOF
+	case ev := <-c.consumer.Events():
+		switch e := ev.(type) {
+		case *confluent.Message:
+			copy(d, e.Value)
+			return len(e.Value), nil
 		}
 	}
+	return 0, nil
 }
 
 // Close cleans up and shutsdown the consumer
 func (c *Consumer) Close() {
 	c.consumer.Close()
-	log.info("Consumer has been closed")
+	log.Info("Consumer has been closed")
 }
