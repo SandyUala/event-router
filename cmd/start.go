@@ -29,8 +29,7 @@ func init() {
 func start(cmd *cobra.Command, args []string) {
 	log := logging.GetLogger(logrus.Fields{"package": "api"})
 
-	appConfig := config.Get()
-	appConfig.Print()
+	config.AppConfig.Print()
 
 	// Listen for system signals to shutdown and close our shutdown channel
 	shutdownChan := make(chan struct{})
@@ -43,10 +42,10 @@ func start(cmd *cobra.Command, args []string) {
 
 	// Create a stream consumer
 	consumer, err := kafka.NewConsumer(&kafka.ConsumerConfig{
-		BootstrapServers: appConfig.KafkaBrokers,
-		GroupID:          appConfig.KafkaGroupID,
-		Topic:            appConfig.KafkaInputTopic,
-		DebugMode:        appConfig.DebugMode,
+		BootstrapServers: config.AppConfig.KafkaBrokers,
+		GroupID:          config.AppConfig.KafkaGroupID,
+		Topic:            config.AppConfig.KafkaInputTopic,
+		DebugMode:        config.AppConfig.DebugMode,
 		ShutdownChannel:  shutdownChan,
 	})
 	if err != nil {
@@ -61,8 +60,8 @@ func start(cmd *cobra.Command, args []string) {
 	// defer file.Close()
 
 	producer, err := kafka.NewProducer(&kafka.ProducerConfig{
-		BootstrapServers: appConfig.KafkaBrokers,
-		DebugMode:        appConfig.DebugMode,
+		BootstrapServers: config.AppConfig.KafkaBrokers,
+		DebugMode:        config.AppConfig.DebugMode,
 		ShutdownChannel:  shutdownChan,
 	})
 	if err != nil {
@@ -76,8 +75,8 @@ func start(cmd *cobra.Command, args []string) {
 	}()
 
 	apiServerConfig := &api.ServerConfig{
-		APIInterface: appConfig.APIInterface,
-		APIPort:      appConfig.APIPort,
+		APIInterface: config.AppConfig.APIInterface,
+		APIPort:      config.AppConfig.APIPort,
 	}
 
 	apiServer := api.NewServer().

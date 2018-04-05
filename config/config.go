@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-// AppConfig is a global instance of Configuration
 var (
-	AppConfig *Configuration = &Configuration{}
+	// AppConfig is the gloabl application configuration
+	AppConfig = &Configuration{}
 )
 
 // Configuration is a stuct to hold event-router configs
@@ -25,27 +25,22 @@ type Configuration struct {
 }
 
 func init() {
-	appConfig := viper.New()
-	appConfig.SetEnvPrefix("ER")
-	appConfig.AutomaticEnv()
+	appViper := viper.New()
+	appViper.SetEnvPrefix("ER")
+	appViper.AutomaticEnv()
 
-	appConfig.SetDefault("DEBUG_MODE", false)
-	appConfig.SetDefault("LOG_FORMAT", "json")
-	appConfig.SetDefault("API_INTERFACE", "0.0.0.0")
-	appConfig.SetDefault("API_PORT", "8081")
-	appConfig.SetDefault("KAFKA_BROKERS", "")
-	appConfig.SetDefault("KAFKA_GROUP_ID", "ap-event-router")
-	appConfig.SetDefault("KAFKA_INPUT_TOPIC", "")
-	appConfig.SetDefault("INTEGRATION_CONFIG_DIR", "/etc/astronomer/event-router/integrations")
+	appViper.SetDefault("DEBUG_MODE", false)
+	appViper.SetDefault("LOG_FORMAT", "json")
+	appViper.SetDefault("API_INTERFACE", "0.0.0.0")
+	appViper.SetDefault("API_PORT", "8081")
+	appViper.SetDefault("KAFKA_BROKERS", "")
+	appViper.SetDefault("KAFKA_GROUP_ID", "ap-event-router")
+	appViper.SetDefault("KAFKA_INPUT_TOPIC", "")
+	appViper.SetDefault("INTEGRATION_CONFIG_DIR", "/etc/astronomer/event-router/integrations")
 
-	if err := appConfig.Unmarshal(AppConfig); err != nil {
+	if err := appViper.Unmarshal(AppConfig); err != nil {
 		fmt.Errorf("Unable to decode into struct, %v", err)
 	}
-}
-
-// Get returns the config
-func Get() *Configuration {
-	return AppConfig
 }
 
 // Print prints the configuration to stdout

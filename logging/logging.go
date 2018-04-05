@@ -10,14 +10,13 @@ var log *logrus.Logger
 
 // Configure logger on startup
 func init() {
-	cfg := config.Get()
 	log = logrus.New()
 
-	if cfg.LogFormat == "json" {
+	if config.AppConfig.LogFormat == "json" {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 
-	if cfg.DebugMode {
+	if config.AppConfig.DebugMode {
 		log.SetLevel(logrus.DebugLevel)
 	} else {
 		log.SetLevel(logrus.InfoLevel)
