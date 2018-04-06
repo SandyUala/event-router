@@ -13,6 +13,7 @@ import (
 // Server is an API client
 type Server struct {
 	handlers []routes.RouteHandler
+	server   *http.Server
 	config   *ServerConfig
 }
 
@@ -23,13 +24,19 @@ type ServerConfig struct {
 }
 
 // NewServer returns a new Server
-func NewServer() *Server {
-	return &Server{handlers: make([]routes.RouteHandler, 0)}
-}
+func NewServer(config *ServerConfig) *Server {
+	// Create our new Server
+	s := &Server{handlers: make([]routes.RouteHandler, 0)}
 
-// WithConfig sets the servers config
-func (s *Server) WithConfig(config *ServerConfig) *Server {
+	// Set the config
 	s.config = config
+
+	// Create actual http server
+	s.server = &http.Server{
+		Addr: config.APIInterface + ":" + config.APIPort,
+	}
+
+	// Return our Server
 	return s
 }
 
@@ -39,31 +46,37 @@ func (s *Server) WithRouteHandler(rh routes.RouteHandler) *Server {
 	return s
 }
 
-// Run starts the webserver
-func (s *Server) Run(shutdownChan <-chan struct{}) {
+// Serve starts the webserver
+func (s *Server) Serve(shutdownChan <-chan struct{}) {
 	log := logging.GetLogger(logrus.Fields{"package": "api"})
 
 	router := gin.Default()
-	for _, handler := range s.handlers {
-		handler.Register(router)
-	}
-
 	router.GET("/healthz", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
 
-	srv := &http.Server{
-		Addr:    s.config.APIInterface + ":" + s.config.APIPort,
-		Handler: router,
+	// Loop through all configured handlers and add them to our route handler
+	for _, handler := range s.handlers {
+		handler.Register(router)
 	}
 
+	// Set the route handler on the internal http server
+	s.server.Handler = router
+
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Error("Error starting server ", err)
+		if err := s.server.ListenAndServe(); err != nil {
+			log.Error(err)
 		}
 	}()
 
 	<-shutdownChan
-	srv.Shutdown(context.Background())
-	log.Info("Webserver shut down")
+	log.Info("Webserver received shutdown signal")
+}
+
+// Close cleans up and shutsdown the webserver
+func (s *Server) Close() {
+	log := logging.GetLogger(logrus.Fields{"package": "api"})
+
+	s.server.Shutdown(context.Background())
+	log.Info("Webserver has been shut down")
 }

@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/astronomerio/event-router/api"
@@ -27,9 +28,11 @@ func init() {
 }
 
 func start(cmd *cobra.Command, args []string) {
-	log := logging.GetLogger(logrus.Fields{"package": "api"})
-
+	log := logging.GetLogger(logrus.Fields{"package": "cmd"})
 	config.AppConfig.Print()
+
+	// Create a waitgroup to ensure a clean shutdown.
+	var wg sync.WaitGroup
 
 	// Listen for system signals to shutdown and close our shutdown channel
 	shutdownChan := make(chan struct{})
@@ -40,49 +43,58 @@ func start(cmd *cobra.Command, args []string) {
 		close(shutdownChan)
 	}()
 
-	// Create a stream consumer
-	consumer, err := kafka.NewConsumer(&kafka.ConsumerConfig{
-		BootstrapServers: config.AppConfig.KafkaBrokers,
-		GroupID:          config.AppConfig.KafkaGroupID,
-		Topic:            config.AppConfig.KafkaInputTopic,
-		DebugMode:        config.AppConfig.DebugMode,
-		ShutdownChannel:  shutdownChan,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// file, err := os.Create("./records.txt")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// defer file.Close()
-
-	producer, err := kafka.NewProducer(&kafka.ProducerConfig{
-		BootstrapServers: config.AppConfig.KafkaBrokers,
-		DebugMode:        config.AppConfig.DebugMode,
-		ShutdownChannel:  shutdownChan,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	// Run the event pipeline
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
+		// Create a stream consumer
+		consumer, err := kafka.NewConsumer(&kafka.ConsumerConfig{
+			BootstrapServers: config.AppConfig.KafkaBrokers,
+			GroupID:          config.AppConfig.KafkaGroupID,
+			Topic:            config.AppConfig.KafkaInputTopic,
+			DebugMode:        config.AppConfig.DebugMode,
+			ShutdownChannel:  shutdownChan,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer consumer.Close()
+
+		// Create a stream producer
+		producer, err := kafka.NewProducer(&kafka.ProducerConfig{
+			BootstrapServers: config.AppConfig.KafkaBrokers,
+			DebugMode:        config.AppConfig.DebugMode,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer producer.Close()
+
+		// Block and continuously pipe data from the consumer to the producer.
+		// Unblocks when io.EOF is returned from consumer.
 		if _, err = io.Copy(producer, consumer); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
-	apiServerConfig := &api.ServerConfig{
-		APIInterface: config.AppConfig.APIInterface,
-		APIPort:      config.AppConfig.APIPort,
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-	apiServer := api.NewServer().
-		WithConfig(apiServerConfig).
-		WithRouteHandler(v1.NewPrometheusHandler())
+		// Create our API server
+		apiServerConfig := &api.ServerConfig{
+			APIInterface: config.AppConfig.APIInterface,
+			APIPort:      config.AppConfig.APIPort,
+		}
 
-	apiServer.Run(shutdownChan)
+		apiServer := api.NewServer(apiServerConfig).
+			WithRouteHandler(v1.NewPrometheusHandler())
+
+		defer apiServer.Close()
+		apiServer.Serve(shutdownChan)
+	}()
+
+	wg.Wait()
 	log.Info("Finished")
 }

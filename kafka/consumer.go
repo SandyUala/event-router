@@ -54,10 +54,14 @@ func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
 		return nil, errors.Wrap(err, "Error subscribing to topic ")
 	}
 
-	return &Consumer{
+	// Create the new Consumer
+	consumer := &Consumer{
 		config:   cfg,
 		consumer: c,
-	}, nil
+	}
+
+	// Return the new Consumer
+	return consumer, nil
 }
 
 // Read subscribes to topics and receives messages
@@ -66,7 +70,7 @@ func (c *Consumer) Read(d []byte) (int, error) {
 
 	select {
 	case <-c.config.ShutdownChannel:
-		log.Info("Kafka consumer shutting down")
+		log.Info("Kafka consumer received shutdown signal")
 		return 0, io.EOF
 	case ev := <-c.consumer.Events():
 		switch e := ev.(type) {

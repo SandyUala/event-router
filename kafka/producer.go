@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	v1types "github.com/astronomerio/event-api/types/v1"
+	"github.com/astronomerio/event-router/config"
 	"github.com/astronomerio/event-router/logging"
 	confluent "github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/pkg/errors"
@@ -20,7 +21,6 @@ type Producer struct {
 type ProducerConfig struct {
 	BootstrapServers string
 	MessageTimeout   int
-	ShutdownChannel  chan struct{}
 	DebugMode        bool
 }
 
@@ -45,15 +45,22 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 		return nil, errors.Wrap(err, "Error creating producer")
 	}
 
-	return &Producer{
+	// Create the new Producer
+	producer := &Producer{
 		config:   cfg,
 		producer: p,
-	}, nil
+	}
+
+	// Fork off to handle kafka events
+	go producer.handleEvents()
+
+	// Return the new Producer
+	return producer, nil
 }
 
 // Write forwards events to destination topics
 func (p *Producer) Write(d []byte) (int, error) {
-	log := logging.GetLogger(logrus.Fields{"package": "api"})
+	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
 
 	// Unmarshal to type
 	ev := v1types.Event{}
@@ -62,6 +69,48 @@ func (p *Producer) Write(d []byte) (int, error) {
 		return 0, err
 	}
 
-	log.Infof("%+v", ev.GetWriteKey())
+	integrations := config.IntegrationConfig.EnabledIntegrations(ev.GetWriteKey())
+	for _, integration := range integrations {
+		name := integration
+		log.Infof("Pushing to %s", name)
+		p.producer.ProduceChannel() <- &confluent.Message{
+			TopicPartition: confluent.TopicPartition{
+				Topic:     &name,
+				Partition: confluent.PartitionAny,
+			},
+			Key:   []byte(ev.GetMessageID()),
+			Value: d,
+		}
+	}
+
 	return len(d), nil
+}
+
+func (p *Producer) handleEvents() {
+	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
+
+	for {
+		select {
+		case ev := <-p.producer.Events():
+			switch e := ev.(type) {
+			case *confluent.Message:
+				if e.TopicPartition.Error != nil {
+					log.Errorf("Delivery failed: %v", e.TopicPartition.Error)
+				} else {
+					log.Infof("Delivered message to topic %v\n", e.TopicPartition)
+				}
+			case *confluent.Error:
+				log.Error(e.Error())
+				// case *confluent.Stats:
+			}
+		}
+	}
+}
+
+// Close cleans up and shutsdown the producer
+func (p *Producer) Close() {
+	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
+
+	p.producer.Close()
+	log.Info("Producer has been closed")
 }

@@ -7,10 +7,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	// AppConfig is the gloabl application configuration
-	AppConfig = &Configuration{}
-)
+// AppConfig is the gloabl application configuration
+var AppConfig = &Configuration{}
 
 // Configuration is a stuct to hold event-router configs
 type Configuration struct {
