@@ -49,7 +49,7 @@ services:
     environment:
       ER_DEBUG_MODE: "false"
       ER_KAFKA_BROKERS: "kafka:9092"
-      ER_KAFKA_INPUT_TOPIC: "ingestion"
+      ER_KAFKA_CONSUMER_TOPIC: "ingestion"
       ER_INTEGRATION_CONFIG_DIR: "."
     ports:
       - "8082:8081"

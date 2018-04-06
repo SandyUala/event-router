@@ -12,14 +12,16 @@ var AppConfig = &Configuration{}
 
 // Configuration is a stuct to hold event-router configs
 type Configuration struct {
-	DebugMode             bool   `mapstructure:"DEBUG_MODE"`
-	LogFormat             string `mapstructure:"LOG_FORMAT"`
-	APIInterface          string `mapstructure:"API_INTERFACE"`
-	APIPort               string `mapstructure:"API_PORT"`
-	KafkaBrokers          string `mapstructure:"KAFKA_BROKERS"`
-	KafkaGroupID          string `mapstructure:"KAFKA_GROUP_ID"`
-	KafkaInputTopic       string `mapstructure:"KAFKA_INPUT_TOPIC"`
-	IntegerationConfigDir string `mapstructure:"INTEGRATION_CONFIG_DIR"`
+	DebugMode                   bool   `mapstructure:"DEBUG_MODE"`
+	LogFormat                   string `mapstructure:"LOG_FORMAT"`
+	APIInterface                string `mapstructure:"API_INTERFACE"`
+	APIPort                     string `mapstructure:"API_PORT"`
+	KafkaBrokers                string `mapstructure:"KAFKA_BROKERS"`
+	KafkaConsumerTopic          string `mapstructure:"KAFKA_CONSUMER_TOPIC"`
+	KafkaConsumerGroupID        string `mapstructure:"KAFKA_CONSUMER_GROUP_ID"`
+	KafkaProducerMessageTimeout int    `mapstructure:"KAFKA_PRODUCER_MESSAGE_TIMEOUT"`
+	KafkaProducerFlushTimeout   int    `mapstructure:"KAFKA_PRODUCER_FLUSH_TIMEOUT"`
+	IntegerationConfigDir       string `mapstructure:"INTEGRATION_CONFIG_DIR"`
 }
 
 func init() {
@@ -32,8 +34,10 @@ func init() {
 	appViper.SetDefault("API_INTERFACE", "0.0.0.0")
 	appViper.SetDefault("API_PORT", "8081")
 	appViper.SetDefault("KAFKA_BROKERS", "")
-	appViper.SetDefault("KAFKA_GROUP_ID", "ap-event-router")
-	appViper.SetDefault("KAFKA_INPUT_TOPIC", "")
+	appViper.SetDefault("KAFKA_CONSUMER_GROUP_ID", "ap-event-router")
+	appViper.SetDefault("KAFKA_CONSUMER_TOPIC", "")
+	appViper.SetDefault("KAFKA_PRODUCER_MESSAGE_TIMEOUT", 5000)
+	appViper.SetDefault("KAFKA_PRODUCER_FLUSH_TIMEOUT", 1000)
 	appViper.SetDefault("INTEGRATION_CONFIG_DIR", "/etc/astronomer/event-router/integrations")
 
 	if err := appViper.Unmarshal(AppConfig); err != nil {

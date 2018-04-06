@@ -51,8 +51,8 @@ func start(cmd *cobra.Command, args []string) {
 		// Create a stream consumer
 		consumer, err := kafka.NewConsumer(&kafka.ConsumerConfig{
 			BootstrapServers: config.AppConfig.KafkaBrokers,
-			GroupID:          config.AppConfig.KafkaGroupID,
-			Topic:            config.AppConfig.KafkaInputTopic,
+			GroupID:          config.AppConfig.KafkaConsumerGroupID,
+			Topic:            config.AppConfig.KafkaConsumerTopic,
 			DebugMode:        config.AppConfig.DebugMode,
 			ShutdownChannel:  shutdownChan,
 		})
@@ -65,6 +65,8 @@ func start(cmd *cobra.Command, args []string) {
 		producer, err := kafka.NewProducer(&kafka.ProducerConfig{
 			BootstrapServers: config.AppConfig.KafkaBrokers,
 			DebugMode:        config.AppConfig.DebugMode,
+			MessageTimeout:   config.AppConfig.KafkaProducerMessageTimeout,
+			FlushTimeout:     config.AppConfig.KafkaProducerFlushTimeout,
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -82,12 +84,13 @@ func start(cmd *cobra.Command, args []string) {
 	go func() {
 		defer wg.Done()
 
-		// Create our API server
+		// Create API config
 		apiServerConfig := &api.ServerConfig{
 			APIInterface: config.AppConfig.APIInterface,
 			APIPort:      config.AppConfig.APIPort,
 		}
 
+		// Create our API server
 		apiServer := api.NewServer(apiServerConfig).
 			WithRouteHandler(v1.NewPrometheusHandler())
 

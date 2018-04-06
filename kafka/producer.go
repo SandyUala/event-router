@@ -21,6 +21,7 @@ type Producer struct {
 type ProducerConfig struct {
 	BootstrapServers string
 	MessageTimeout   int
+	FlushTimeout     int
 	DebugMode        bool
 }
 
@@ -111,6 +112,15 @@ func (p *Producer) handleEvents() {
 func (p *Producer) Close() {
 	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
 
+	// Flush and return messages remaining
+	msgs := p.producer.Flush(p.config.FlushTimeout)
+	if msgs != 0 {
+		log.Errorf("Failed to flush %d messages after %d ms", msgs, p.config.FlushTimeout)
+	} else {
+		log.Info("All messages have been flushed")
+	}
+
+	// Close the producer
 	p.producer.Close()
 	log.Info("Producer has been closed")
 }
