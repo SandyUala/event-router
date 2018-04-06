@@ -16,12 +16,13 @@ type Configuration struct {
 	LogFormat                   string `mapstructure:"LOG_FORMAT"`
 	APIInterface                string `mapstructure:"API_INTERFACE"`
 	APIPort                     string `mapstructure:"API_PORT"`
+	IntegerationConfigDir       string `mapstructure:"INTEGRATION_CONFIG_DIR"`
 	KafkaBrokers                string `mapstructure:"KAFKA_BROKERS"`
 	KafkaConsumerTopic          string `mapstructure:"KAFKA_CONSUMER_TOPIC"`
 	KafkaConsumerGroupID        string `mapstructure:"KAFKA_CONSUMER_GROUP_ID"`
 	KafkaProducerMessageTimeout int    `mapstructure:"KAFKA_PRODUCER_MESSAGE_TIMEOUT"`
 	KafkaProducerFlushTimeout   int    `mapstructure:"KAFKA_PRODUCER_FLUSH_TIMEOUT"`
-	IntegerationConfigDir       string `mapstructure:"INTEGRATION_CONFIG_DIR"`
+	KafkaDebugMode              bool   `mapstructure:"KAFKA_DEBUG_MODE"`
 }
 
 func init() {
@@ -33,12 +34,13 @@ func init() {
 	appViper.SetDefault("LOG_FORMAT", "json")
 	appViper.SetDefault("API_INTERFACE", "0.0.0.0")
 	appViper.SetDefault("API_PORT", "8081")
+	appViper.SetDefault("INTEGRATION_CONFIG_DIR", "/etc/astronomer/event-router/integrations")
 	appViper.SetDefault("KAFKA_BROKERS", "")
 	appViper.SetDefault("KAFKA_CONSUMER_GROUP_ID", "ap-event-router")
 	appViper.SetDefault("KAFKA_CONSUMER_TOPIC", "")
 	appViper.SetDefault("KAFKA_PRODUCER_MESSAGE_TIMEOUT", 5000)
 	appViper.SetDefault("KAFKA_PRODUCER_FLUSH_TIMEOUT", 1000)
-	appViper.SetDefault("INTEGRATION_CONFIG_DIR", "/etc/astronomer/event-router/integrations")
+	appViper.SetDefault("KAFKA_DEBUG_MODE", false)
 
 	if err := appViper.Unmarshal(AppConfig); err != nil {
 		fmt.Errorf("Unable to decode into struct, %v", err)

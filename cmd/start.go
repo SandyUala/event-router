@@ -54,6 +54,7 @@ func start(cmd *cobra.Command, args []string) {
 			GroupID:          config.AppConfig.KafkaConsumerGroupID,
 			Topic:            config.AppConfig.KafkaConsumerTopic,
 			DebugMode:        config.AppConfig.DebugMode,
+			KafkaDebugMode:   config.AppConfig.KafkaDebugMode,
 			ShutdownChannel:  shutdownChan,
 		})
 		if err != nil {
@@ -66,6 +67,7 @@ func start(cmd *cobra.Command, args []string) {
 			BootstrapServers: config.AppConfig.KafkaBrokers,
 			DebugMode:        config.AppConfig.DebugMode,
 			MessageTimeout:   config.AppConfig.KafkaProducerMessageTimeout,
+			KafkaDebugMode:   config.AppConfig.KafkaDebugMode,
 			FlushTimeout:     config.AppConfig.KafkaProducerFlushTimeout,
 		})
 		if err != nil {

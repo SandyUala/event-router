@@ -22,6 +22,7 @@ type ConsumerConfig struct {
 	Topic            string
 	ShutdownChannel  chan struct{}
 	DebugMode        bool
+	KafkaDebugMode   bool
 }
 
 // NewConsumer creates a new kafka consumer
@@ -39,7 +40,7 @@ func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
 	}
 
 	// Set Kafka debugging if in DebugMode
-	if cfg.DebugMode == true {
+	if cfg.KafkaDebugMode == true {
 		cfgMap.SetKey("debug", "protocol,topic,msg")
 	}
 
@@ -77,6 +78,14 @@ func (c *Consumer) Read(d []byte) (int, error) {
 		case *confluent.Message:
 			copy(d, e.Value)
 			return len(e.Value), nil
+		case confluent.Error:
+			log.Error(e)
+		case confluent.AssignedPartitions, confluent.RevokedPartitions:
+			log.Info(e)
+		case confluent.OffsetsCommitted, confluent.PartitionEOF:
+			log.Debug(e)
+			// case *confluent.Stats:
+			// 	log.Debug(e)
 		}
 	}
 	return 0, nil

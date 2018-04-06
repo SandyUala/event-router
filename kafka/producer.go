@@ -23,6 +23,7 @@ type ProducerConfig struct {
 	MessageTimeout   int
 	FlushTimeout     int
 	DebugMode        bool
+	KafkaDebugMode   bool
 }
 
 // NewProducer creates a new Producer
@@ -33,10 +34,11 @@ func NewProducer(cfg *ProducerConfig) (*Producer, error) {
 		"message.timeout.ms":      cfg.MessageTimeout,
 		"request.required.acks":   -1,
 		"go.produce.channel.size": 1000,
+		"statistics.interval.ms":  500,
 	}
 
 	// Set Kafka debugging if in DebugMode
-	if cfg.DebugMode == true {
+	if cfg.KafkaDebugMode == true {
 		cfgMap.SetKey("debug", "protocol,topic,msg")
 	}
 
@@ -98,11 +100,12 @@ func (p *Producer) handleEvents() {
 				if e.TopicPartition.Error != nil {
 					log.Errorf("Delivery failed: %v", e.TopicPartition.Error)
 				} else {
-					log.Infof("Delivered message to topic %v\n", e.TopicPartition)
+					log.Debugf("Delivered message to topic %v\n", e.TopicPartition)
 				}
-			case *confluent.Error:
-				log.Error(e.Error())
+			case confluent.Error:
+				log.Error(e)
 				// case *confluent.Stats:
+				// 	log.Debug(e)
 			}
 		}
 	}
