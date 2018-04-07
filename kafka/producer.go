@@ -75,7 +75,7 @@ func (p *Producer) Write(d []byte) (int, error) {
 	integrations := config.IntegrationConfig.EnabledIntegrations(ev.GetWriteKey())
 	for _, integration := range integrations {
 		name := integration
-		log.Infof("Pushing to %s", name)
+		log.Infof("Pushing to %s with key: ", name, ev.GetMessageID())
 		p.producer.ProduceChannel() <- &confluent.Message{
 			TopicPartition: confluent.TopicPartition{
 				Topic:     &name,
@@ -100,7 +100,7 @@ func (p *Producer) handleEvents() {
 				if e.TopicPartition.Error != nil {
 					log.Errorf("Delivery failed: %v", e.TopicPartition.Error)
 				} else {
-					log.Debugf("Delivered message to topic %v\n", e.TopicPartition)
+					log.Debugf("Delivered message to topic %v", e.TopicPartition)
 				}
 			case confluent.Error:
 				log.Error(e)

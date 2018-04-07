@@ -29,14 +29,14 @@ type ConsumerConfig struct {
 func NewConsumer(cfg *ConsumerConfig) (*Consumer, error) {
 	// Create consumer config map
 	cfgMap := &confluent.ConfigMap{
-		"bootstrap.servers":        cfg.BootstrapServers,
-		"group.id":                 cfg.GroupID,
-		"session.timeout.ms":       6000,
-		"go.events.channel.enable": true,
-		"enable.auto.commit":       true,
-		"statistics.interval.ms":   500,
-		"default.topic.config":     confluent.ConfigMap{"auto.offset.reset": "earliest"},
-		// "go.application.rebalance.enable": true,
+		"bootstrap.servers":               cfg.BootstrapServers,
+		"group.id":                        cfg.GroupID,
+		"session.timeout.ms":              6000,
+		"go.events.channel.enable":        true,
+		"enable.auto.commit":              true,
+		"statistics.interval.ms":          500,
+		"default.topic.config":            confluent.ConfigMap{"auto.offset.reset": "earliest"},
+		"go.application.rebalance.enable": true,
 	}
 
 	// Set Kafka debugging if in DebugMode
@@ -80,8 +80,12 @@ func (c *Consumer) Read(d []byte) (int, error) {
 			return len(e.Value), nil
 		case confluent.Error:
 			log.Error(e)
-		case confluent.AssignedPartitions, confluent.RevokedPartitions:
+		case confluent.AssignedPartitions:
 			log.Info(e)
+			c.consumer.Assign(e.Partitions)
+		case confluent.RevokedPartitions:
+			log.Info(e)
+			c.consumer.Unassign()
 		case confluent.OffsetsCommitted, confluent.PartitionEOF:
 			log.Debug(e)
 			// case *confluent.Stats:
