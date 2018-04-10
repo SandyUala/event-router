@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/astronomerio/event-router/logging"
 	"github.com/astronomerio/phoenix/api/routes"
@@ -73,10 +74,16 @@ func (s *Server) Serve(shutdownChan <-chan struct{}) {
 	log.Info("Webserver received shutdown signal")
 }
 
-// Close cleans up and shutsdown the webserver
+// Close cleans up and shuts down the webserver
 func (s *Server) Close() {
 	log := logging.GetLogger(logrus.Fields{"package": "api"})
 
-	s.server.Shutdown(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.server.Shutdown(ctx); err != nil {
+		log.Errorf("Server shutdown: %s", err)
+	}
+
 	log.Info("Webserver has been shut down")
 }

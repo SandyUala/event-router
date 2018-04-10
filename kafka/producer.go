@@ -92,21 +92,21 @@ func (p *Producer) Write(d []byte) (int, error) {
 func (p *Producer) handleEvents() {
 	log := logging.GetLogger(logrus.Fields{"package": "kafka"})
 
-	for {
-		select {
-		case ev := <-p.producer.Events():
-			switch e := ev.(type) {
-			case *confluent.Message:
-				if e.TopicPartition.Error != nil {
-					log.Errorf("Delivery failed: %v", e.TopicPartition.Error)
-				} else {
-					log.Debugf("Delivered message to topic %v", e.TopicPartition)
-				}
-			case confluent.Error:
-				log.Error(e)
-				// case *confluent.Stats:
-				// 	log.Debug(e)
+	// Loop over events
+	for e := range p.producer.Events() {
+		switch ev := e.(type) {
+
+		// Delivery reports
+		case *confluent.Message:
+			if ev.TopicPartition.Error != nil {
+				log.Errorf("Delivery failed: %v", ev.TopicPartition.Error)
+			} else {
+				log.Debugf("Delivered message to topic %v", ev.TopicPartition)
 			}
+		case confluent.Error:
+			log.Error(e)
+			// case *confluent.Stats:
+			// 	log.Debug(e)
 		}
 	}
 }
